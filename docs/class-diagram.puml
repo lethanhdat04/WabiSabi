@@ -1,0 +1,602 @@
+@startuml Nihongo Master - Class Diagram
+
+' ============================================
+' NIHONGO MASTER - BACKEND CLASS DIAGRAM
+' Spring Boot Application Architecture
+' ============================================
+
+skinparam classAttributeIconSize 0
+skinparam classFontStyle bold
+skinparam packageStyle rectangle
+
+' ============================================
+' ENUMERATIONS
+' ============================================
+
+package "Enums" #DDDDDD {
+
+    enum UserRole {
+        GUEST
+        USER
+        PREMIUM
+        ADMIN
+    }
+
+    enum JLPTLevel {
+        N5
+        N4
+        N3
+        N2
+        N1
+    }
+
+    enum VideoCategory {
+        DAILY_LIFE
+        BUSINESS
+        ANIME
+        NEWS
+        TRAVEL
+        CULTURE
+        EDUCATION
+    }
+
+    enum PracticeMode {
+        SHADOWING
+        DICTATION
+        FLASHCARD
+        FILL_IN
+    }
+
+    enum ContentStatus {
+        DRAFT
+        PUBLISHED
+        ARCHIVED
+        FLAGGED
+        DELETED
+    }
+
+    enum AchievementType {
+        STREAK
+        VIDEOS_COMPLETED
+        VOCAB_MASTERED
+        COMMUNITY_CONTRIBUTION
+        ACCURACY_MILESTONE
+    }
+}
+
+' ============================================
+' DOMAIN ENTITIES
+' ============================================
+
+package "Domain Entities" #LightBlue {
+
+    ' --- User Entity ---
+    class User {
+        - id: String
+        - email: String
+        - username: String
+        - passwordHash: String
+        - displayName: String
+        - avatarUrl: String
+        - role: UserRole
+        - nativeLanguage: String
+        - targetLevel: JLPTLevel
+        - dailyGoalMinutes: Integer
+        - streak: Integer
+        - totalXP: Long
+        - createdAt: LocalDateTime
+        - lastActiveAt: LocalDateTime
+        - emailVerified: Boolean
+        - preferences: UserPreferences
+        --
+        + updateProfile(dto: UserProfileDTO): void
+        + addXP(points: Long): void
+        + incrementStreak(): void
+        + resetStreak(): void
+        + hasRole(role: UserRole): Boolean
+    }
+
+    class UserPreferences {
+        - notificationsEnabled: Boolean
+        - emailReminders: Boolean
+        - reviewTime: LocalTime
+        - interfaceLanguage: String
+        - showFurigana: Boolean
+        - autoPlayAudio: Boolean
+    }
+
+    class UserProgress {
+        - id: String
+        - userId: String
+        - listeningScore: Double
+        - speakingScore: Double
+        - vocabularyScore: Double
+        - totalVideosCompleted: Integer
+        - totalVocabMastered: Integer
+        - totalPracticeMinutes: Long
+        - weeklyStats: List<WeeklyStat>
+        --
+        + updateScores(practiceResult: PracticeResult): void
+        + generateWeeklyReport(): WeeklyReport
+    }
+
+    class WeeklyStat {
+        - weekStartDate: LocalDate
+        - practiceMinutes: Integer
+        - videosCompleted: Integer
+        - vocabReviewed: Integer
+        - averageAccuracy: Double
+    }
+
+    ' --- Video Entity ---
+    class Video {
+        - id: String
+        - title: String
+        - titleJapanese: String
+        - description: String
+        - youtubeId: String
+        - thumbnailUrl: String
+        - duration: Integer
+        - category: VideoCategory
+        - level: JLPTLevel
+        - tags: List<String>
+        - transcript: Transcript
+        - uploadedBy: String
+        - status: ContentStatus
+        - viewCount: Long
+        - practiceCount: Long
+        - averageScore: Double
+        - createdAt: LocalDateTime
+        --
+        + incrementViewCount(): void
+        + incrementPracticeCount(): void
+        + updateAverageScore(newScore: Double): void
+        + getSegments(): List<TranscriptSegment>
+    }
+
+    class Transcript {
+        - fullText: String
+        - segments: List<TranscriptSegment>
+        - language: String
+        - generatedAt: LocalDateTime
+    }
+
+    class TranscriptSegment {
+        - startTime: Double
+        - endTime: Double
+        - text: String
+        - textRomaji: String
+        - translation: String
+    }
+
+    ' --- Deck & Vocabulary ---
+    class Deck {
+        - id: String
+        - title: String
+        - description: String
+        - coverImageUrl: String
+        - level: JLPTLevel
+        - category: String
+        - tags: List<String>
+        - creatorId: String
+        - isPublic: Boolean
+        - isOfficial: Boolean
+        - sections: List<DeckSection>
+        - totalItems: Integer
+        - forkCount: Integer
+        - starCount: Integer
+        - status: ContentStatus
+        - createdAt: LocalDateTime
+        - updatedAt: LocalDateTime
+        --
+        + addSection(section: DeckSection): void
+        + removeSection(sectionId: String): void
+        + getTotalVocabulary(): Integer
+        + fork(userId: String): Deck
+        + star(userId: String): void
+    }
+
+    class DeckSection {
+        - id: String
+        - title: String
+        - orderIndex: Integer
+        - vocabularyItems: List<VocabularyItem>
+    }
+
+    class VocabularyItem {
+        - id: String
+        - word: String
+        - reading: String
+        - meaning: String
+        - meaningVi: String
+        - partOfSpeech: String
+        - exampleSentence: String
+        - exampleTranslation: String
+        - audioUrl: String
+        - imageUrl: String
+        - jlptLevel: JLPTLevel
+        - tags: List<String>
+        --
+        + hasAudio(): Boolean
+        + hasImage(): Boolean
+    }
+
+    ' --- Practice & Review ---
+    class PracticeSession {
+        - id: String
+        - userId: String
+        - videoId: String
+        - mode: PracticeMode
+        - startedAt: LocalDateTime
+        - completedAt: LocalDateTime
+        - duration: Integer
+        - attempts: List<PracticeAttempt>
+        - overallScore: Double
+        - feedback: AIFeedback
+        --
+        + addAttempt(attempt: PracticeAttempt): void
+        + calculateOverallScore(): Double
+        + isCompleted(): Boolean
+    }
+
+    class PracticeAttempt {
+        - segmentIndex: Integer
+        - recordingUrl: String
+        - pronunciationScore: Double
+        - speedScore: Double
+        - intonationScore: Double
+        - overallScore: Double
+        - transcribedText: String
+        - timestamp: LocalDateTime
+    }
+
+    class AIFeedback {
+        - overallAssessment: String
+        - strengths: List<String>
+        - improvements: List<String>
+        - specificTips: List<String>
+        - recommendedPractice: List<String>
+    }
+
+    class ReviewItem {
+        - id: String
+        - userId: String
+        - itemType: String
+        - itemId: String
+        - easeFactor: Double
+        - interval: Integer
+        - repetitions: Integer
+        - nextReviewDate: LocalDate
+        - lastReviewDate: LocalDate
+        - history: List<ReviewHistory>
+        --
+        + calculateNextReview(quality: Integer): void
+        + isDue(): Boolean
+    }
+
+    class ReviewHistory {
+        - reviewDate: LocalDateTime
+        - quality: Integer
+        - responseTime: Long
+    }
+
+    ' --- Community ---
+    class Post {
+        - id: String
+        - authorId: String
+        - title: String
+        - content: String
+        - category: String
+        - tags: List<String>
+        - attachments: List<Attachment>
+        - likeCount: Integer
+        - commentCount: Integer
+        - viewCount: Integer
+        - status: ContentStatus
+        - isPinned: Boolean
+        - createdAt: LocalDateTime
+        - updatedAt: LocalDateTime
+        --
+        + like(userId: String): void
+        + unlike(userId: String): void
+        + incrementViewCount(): void
+        + addComment(): void
+    }
+
+    class Comment {
+        - id: String
+        - postId: String
+        - authorId: String
+        - parentId: String
+        - content: String
+        - likeCount: Integer
+        - status: ContentStatus
+        - createdAt: LocalDateTime
+        - updatedAt: LocalDateTime
+        --
+        + like(userId: String): void
+        + unlike(userId: String): void
+        + isReply(): Boolean
+    }
+
+    class Attachment {
+        - type: String
+        - url: String
+        - fileName: String
+        - fileSize: Long
+    }
+
+    ' --- Achievement ---
+    class Achievement {
+        - id: String
+        - name: String
+        - description: String
+        - iconUrl: String
+        - type: AchievementType
+        - threshold: Integer
+        - xpReward: Integer
+        - isSecret: Boolean
+    }
+
+    class UserAchievement {
+        - id: String
+        - userId: String
+        - achievementId: String
+        - unlockedAt: LocalDateTime
+        - progress: Integer
+    }
+
+    ' --- Notification ---
+    class Notification {
+        - id: String
+        - userId: String
+        - type: String
+        - title: String
+        - message: String
+        - data: Map<String, Object>
+        - isRead: Boolean
+        - createdAt: LocalDateTime
+    }
+}
+
+' ============================================
+' RELATIONSHIPS
+' ============================================
+
+User "1" *-- "1" UserPreferences : contains
+User "1" *-- "1" UserProgress : has
+UserProgress "1" *-- "*" WeeklyStat : contains
+
+Video "1" *-- "1" Transcript : has
+Transcript "1" *-- "*" TranscriptSegment : contains
+
+Deck "1" *-- "*" DeckSection : contains
+DeckSection "1" *-- "*" VocabularyItem : contains
+Deck "*" -- "1" User : createdBy
+
+PracticeSession "*" -- "1" User : belongsTo
+PracticeSession "*" -- "1" Video : practices
+PracticeSession "1" *-- "*" PracticeAttempt : contains
+PracticeSession "1" *-- "1" AIFeedback : receives
+
+ReviewItem "*" -- "1" User : belongsTo
+ReviewItem "1" *-- "*" ReviewHistory : tracks
+
+Post "*" -- "1" User : authoredBy
+Comment "*" -- "1" Post : belongsTo
+Comment "*" -- "1" User : authoredBy
+Post "1" *-- "*" Attachment : contains
+
+UserAchievement "*" -- "1" User : earnedBy
+UserAchievement "*" -- "1" Achievement : references
+
+Notification "*" -- "1" User : sentTo
+
+' ============================================
+' SERVICE LAYER
+' ============================================
+
+package "Services" #LightGreen {
+
+    class UserService {
+        + register(dto: RegisterDTO): User
+        + authenticate(dto: LoginDTO): AuthResponse
+        + updateProfile(id: String, dto: UserProfileDTO): User
+        + getProgress(userId: String): UserProgress
+        + updateStreak(userId: String): void
+        + awardXP(userId: String, points: Long): void
+    }
+
+    class VideoService {
+        + findAll(pageable: Pageable): Page<Video>
+        + findById(id: String): Video
+        + search(query: SearchQuery): Page<Video>
+        + create(dto: VideoDTO): Video
+        + updateViewCount(id: String): void
+        + getRecommendations(userId: String): List<Video>
+    }
+
+    class DeckService {
+        + findPublicDecks(pageable: Pageable): Page<Deck>
+        + findByUser(userId: String): List<Deck>
+        + create(dto: DeckDTO): Deck
+        + update(id: String, dto: DeckDTO): Deck
+        + fork(id: String, userId: String): Deck
+        + addVocabulary(deckId: String, dto: VocabDTO): void
+        + importFromCSV(deckId: String, file: MultipartFile): void
+    }
+
+    class PracticeService {
+        + startSession(userId: String, videoId: String, mode: PracticeMode): PracticeSession
+        + submitAttempt(sessionId: String, dto: AttemptDTO): PracticeAttempt
+        + completeSession(sessionId: String): PracticeSession
+        + getHistory(userId: String): List<PracticeSession>
+    }
+
+    class AIService {
+        + analyzeRecording(audioData: byte[], referenceText: String): AIAnalysisResult
+        + generateFeedback(analysis: AIAnalysisResult): AIFeedback
+        + transcribeAudio(audioData: byte[]): String
+        + calculatePronunciationScore(recorded: String, reference: String): Double
+    }
+
+    class ReviewService {
+        + getDueItems(userId: String): List<ReviewItem>
+        + submitReview(itemId: String, quality: Integer): ReviewItem
+        + scheduleItem(userId: String, itemType: String, itemId: String): ReviewItem
+        + generateWeeklyReport(userId: String): WeeklyReport
+    }
+
+    class CommunityService {
+        + createPost(dto: PostDTO): Post
+        + getPostsByCategory(category: String, pageable: Pageable): Page<Post>
+        + addComment(postId: String, dto: CommentDTO): Comment
+        + likePost(postId: String, userId: String): void
+        + reportContent(dto: ReportDTO): void
+    }
+
+    class NotificationService {
+        + send(userId: String, notification: Notification): void
+        + sendReviewReminder(userId: String): void
+        + markAsRead(notificationId: String): void
+        + getUnread(userId: String): List<Notification>
+    }
+
+    class AchievementService {
+        + checkAndAward(userId: String, event: UserEvent): List<Achievement>
+        + getUnlocked(userId: String): List<UserAchievement>
+        + getProgress(userId: String, achievementId: String): Integer
+    }
+}
+
+' Service-Entity Relationships
+UserService ..> User : manages
+VideoService ..> Video : manages
+DeckService ..> Deck : manages
+DeckService ..> VocabularyItem : manages
+PracticeService ..> PracticeSession : manages
+PracticeService ..> AIService : uses
+ReviewService ..> ReviewItem : manages
+CommunityService ..> Post : manages
+CommunityService ..> Comment : manages
+NotificationService ..> Notification : manages
+AchievementService ..> Achievement : manages
+AchievementService ..> UserAchievement : manages
+
+' ============================================
+' REPOSITORY LAYER
+' ============================================
+
+package "Repositories" #LightYellow {
+
+    interface UserRepository {
+        + findByEmail(email: String): Optional<User>
+        + findByUsername(username: String): Optional<User>
+        + existsByEmail(email: String): Boolean
+    }
+
+    interface VideoRepository {
+        + findByCategory(category: VideoCategory, pageable: Pageable): Page<Video>
+        + findByLevel(level: JLPTLevel, pageable: Pageable): Page<Video>
+        + searchByTitle(query: String, pageable: Pageable): Page<Video>
+        + findPopular(pageable: Pageable): Page<Video>
+    }
+
+    interface DeckRepository {
+        + findByCreatorId(creatorId: String): List<Deck>
+        + findPublicDecks(pageable: Pageable): Page<Deck>
+        + findByLevelAndCategory(level: JLPTLevel, category: String): List<Deck>
+    }
+
+    interface PracticeSessionRepository {
+        + findByUserId(userId: String, pageable: Pageable): Page<PracticeSession>
+        + findByUserIdAndVideoId(userId: String, videoId: String): List<PracticeSession>
+        + countByUserIdAndDateRange(userId: String, start: LocalDateTime, end: LocalDateTime): Long
+    }
+
+    interface ReviewItemRepository {
+        + findDueItems(userId: String, date: LocalDate): List<ReviewItem>
+        + findByUserIdAndItemTypeAndItemId(userId: String, type: String, itemId: String): Optional<ReviewItem>
+    }
+
+    interface PostRepository {
+        + findByCategory(category: String, pageable: Pageable): Page<Post>
+        + findByAuthorId(authorId: String, pageable: Pageable): Page<Post>
+        + searchByTitleOrContent(query: String, pageable: Pageable): Page<Post>
+    }
+
+    interface CommentRepository {
+        + findByPostId(postId: String, pageable: Pageable): Page<Comment>
+        + countByPostId(postId: String): Long
+    }
+}
+
+' ============================================
+' CONTROLLER LAYER
+' ============================================
+
+package "Controllers" #LightCoral {
+
+    class AuthController {
+        + register(dto: RegisterDTO): ResponseEntity<AuthResponse>
+        + login(dto: LoginDTO): ResponseEntity<AuthResponse>
+        + refreshToken(token: String): ResponseEntity<AuthResponse>
+        + logout(): ResponseEntity<Void>
+    }
+
+    class UserController {
+        + getCurrentUser(): ResponseEntity<UserDTO>
+        + updateProfile(dto: UserProfileDTO): ResponseEntity<UserDTO>
+        + getProgress(): ResponseEntity<UserProgressDTO>
+        + getAchievements(): ResponseEntity<List<AchievementDTO>>
+    }
+
+    class VideoController {
+        + getVideos(pageable: Pageable): ResponseEntity<Page<VideoDTO>>
+        + getVideo(id: String): ResponseEntity<VideoDTO>
+        + searchVideos(query: String): ResponseEntity<Page<VideoDTO>>
+        + getRecommendations(): ResponseEntity<List<VideoDTO>>
+    }
+
+    class DeckController {
+        + getPublicDecks(pageable: Pageable): ResponseEntity<Page<DeckDTO>>
+        + getMyDecks(): ResponseEntity<List<DeckDTO>>
+        + createDeck(dto: CreateDeckDTO): ResponseEntity<DeckDTO>
+        + updateDeck(id: String, dto: UpdateDeckDTO): ResponseEntity<DeckDTO>
+        + forkDeck(id: String): ResponseEntity<DeckDTO>
+        + addVocabulary(deckId: String, dto: VocabDTO): ResponseEntity<VocabDTO>
+    }
+
+    class PracticeController {
+        + startSession(dto: StartSessionDTO): ResponseEntity<PracticeSessionDTO>
+        + submitAttempt(sessionId: String, audio: MultipartFile): ResponseEntity<AttemptResultDTO>
+        + completeSession(sessionId: String): ResponseEntity<SessionResultDTO>
+        + getHistory(pageable: Pageable): ResponseEntity<Page<PracticeSessionDTO>>
+    }
+
+    class ReviewController {
+        + getDueItems(): ResponseEntity<List<ReviewItemDTO>>
+        + submitReview(dto: SubmitReviewDTO): ResponseEntity<ReviewItemDTO>
+        + getWeeklyReport(): ResponseEntity<WeeklyReportDTO>
+    }
+
+    class CommunityController {
+        + getPosts(category: String, pageable: Pageable): ResponseEntity<Page<PostDTO>>
+        + createPost(dto: CreatePostDTO): ResponseEntity<PostDTO>
+        + getPost(id: String): ResponseEntity<PostDTO>
+        + addComment(postId: String, dto: CommentDTO): ResponseEntity<CommentDTO>
+        + likePost(postId: String): ResponseEntity<Void>
+    }
+}
+
+' Controller-Service Relationships
+AuthController ..> UserService : uses
+UserController ..> UserService : uses
+UserController ..> AchievementService : uses
+VideoController ..> VideoService : uses
+DeckController ..> DeckService : uses
+PracticeController ..> PracticeService : uses
+ReviewController ..> ReviewService : uses
+CommunityController ..> CommunityService : uses
+
+@enduml

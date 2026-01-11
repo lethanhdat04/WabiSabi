@@ -1,0 +1,233 @@
+@startuml Spaced Repetition Review Flow
+
+' ============================================
+' NIHONGO MASTER - SPACED REPETITION REVIEW
+' Sequence Diagram for SRS Algorithm Flow
+' ============================================
+
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title Spaced Repetition Review System (SM-2 Algorithm)
+
+actor "User" as U
+participant "Next.js\nFrontend" as FE #LightBlue
+participant "API Gateway" as GW #LightGray
+participant "Review\nController" as RC #LightGreen
+participant "Review\nService" as RS #LightGreen
+participant "Notification\nService" as NS #Orange
+participant "User\nService" as US #Yellow
+database "MongoDB" as DB #LightCoral
+participant "Scheduler\n(Cron)" as CRON #Purple
+
+== Daily Review Reminder (Background Job) ==
+
+CRON -> NS: triggerDailyReminders()
+activate NS
+NS -> DB: Find users with due items\nand notifications enabled
+activate DB
+DB --> NS: List of users
+deactivate DB
+
+loop For each user with due items
+    NS -> NS: Create notification
+    NS -> DB: Save notification
+    activate DB
+    DB --> NS: Saved
+    deactivate DB
+    NS -> NS: Send push/email notification
+end
+
+deactivate NS
+
+== User Opens Review Page ==
+
+U -> FE: Navigate to /review
+activate FE
+
+FE -> GW: GET /api/reviews/due
+activate GW
+GW -> RC: getDueItems(userId)
+activate RC
+RC -> RS: findDueItems(userId)
+activate RS
+
+RS -> DB: Query ReviewItems where\nnextReviewDate <= today\nAND userId = currentUser
+activate DB
+note right: Index: {userId: 1, nextReviewDate: 1}
+DB --> RS: List of due ReviewItems
+deactivate DB
+
+RS -> RS: Prioritize items:\n1. Overdue items first\n2. Lower ease factor\n3. Older items
+
+RS -> DB: Fetch associated content\n(vocabulary, videos)
+activate DB
+DB --> RS: Content details
+deactivate DB
+
+RS --> RC: EnrichedReviewItems
+deactivate RS
+RC --> GW: ReviewItemDTO[]
+deactivate RC
+GW --> FE: Due items with content
+deactivate GW
+
+FE -> FE: Prepare review queue\nInitialize UI
+FE --> U: Show "You have 15 items to review"\nDisplay first item
+
+== Review Session Loop ==
+
+loop For each review item
+
+    alt Item is Vocabulary
+        FE --> U: Show vocabulary card\n(word hidden, context shown)
+
+        U -> FE: Try to recall
+        U -> FE: Click "Show Answer"
+
+        FE --> U: Reveal word, reading,\nmeaning, example sentence
+
+        U -> FE: Self-evaluate recall quality
+        note right: Quality ratings:\n0 - Complete blackout\n1 - Incorrect, remembered\n2 - Incorrect, easy recall\n3 - Correct, difficult\n4 - Correct, hesitation\n5 - Perfect recall
+
+    else Item is Video Segment
+        FE --> U: Play video segment\nShow context
+
+        U -> FE: Listen and try to\nrecall meaning/reading
+
+        U -> FE: Click "Show Answer"
+
+        FE --> U: Show transcript,\ntranslation, notes
+
+        U -> FE: Self-evaluate
+    end
+
+    U -> FE: Click rating (0-5)
+
+    FE -> GW: POST /api/reviews/{itemId}/submit
+    note right: Request: { quality: 4 }
+    activate GW
+
+    GW -> RC: submitReview(itemId, quality)
+    activate RC
+    RC -> RS: processReview(itemId, quality)
+    activate RS
+
+    ' SM-2 Algorithm Implementation
+    RS -> DB: Get current ReviewItem
+    activate DB
+    DB --> RS: ReviewItem
+    deactivate DB
+
+    RS -> RS: Apply SM-2 Algorithm
+    note right
+        SM-2 Algorithm:
+
+        if quality >= 3:
+            if repetitions == 0:
+                interval = 1
+            else if repetitions == 1:
+                interval = 6
+            else:
+                interval = round(interval * easeFactor)
+            repetitions++
+        else:
+            repetitions = 0
+            interval = 1
+
+        easeFactor = easeFactor +
+            (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+
+        if easeFactor < 1.3:
+            easeFactor = 1.3
+
+        nextReviewDate = today + interval days
+    end note
+
+    RS -> RS: Calculate new:\n- interval\n- easeFactor\n- nextReviewDate\n- repetitions
+
+    RS -> DB: Update ReviewItem\nAdd to history
+    activate DB
+    DB --> RS: Updated item
+    deactivate DB
+
+    RS --> RC: Updated ReviewItem
+    deactivate RS
+    RC --> GW: ReviewResultDTO
+    deactivate RC
+    GW --> FE: Next review info
+    deactivate GW
+
+    FE -> FE: Update progress indicator\nMove to next item
+    FE --> U: Show "Item reviewed"\nShow next review date\nProgress: 8/15
+
+end
+
+== Session Summary ==
+
+FE -> GW: POST /api/reviews/session/complete
+activate GW
+GW -> RC: completeReviewSession(userId, results)
+activate RC
+
+RC -> RS: generateSessionSummary(results)
+activate RS
+RS -> RS: Calculate statistics:\n- Items reviewed\n- Accuracy rate\n- Time spent\n- Items mastered
+
+RS -> DB: Update UserProgress
+activate DB
+DB --> RS: Updated
+deactivate DB
+
+RS -> US: addXP(userId, reviewXP)
+activate US
+US -> DB: Update user XP and streak
+activate DB
+DB --> US: Updated
+deactivate DB
+US --> RS: XP updated
+deactivate US
+
+RS --> RC: SessionSummary
+deactivate RS
+RC --> GW: SessionSummaryDTO
+deactivate RC
+GW --> FE: Summary data
+deactivate GW
+
+FE --> U: Show session summary:\n- 15 items reviewed\n- 87% accuracy\n- 12 minutes spent\n- +45 XP earned\n- Streak: 7 days
+
+deactivate FE
+
+== Weekly Progress Report (Scheduled) ==
+
+CRON -> RS: generateWeeklyReports()
+activate RS
+
+RS -> DB: Get all active users
+activate DB
+DB --> RS: Users list
+deactivate DB
+
+loop For each user
+    RS -> DB: Aggregate review statistics\nfor past 7 days
+    activate DB
+    DB --> RS: Weekly data
+    deactivate DB
+
+    RS -> RS: Generate report:\n- Total items reviewed\n- New items learned\n- Retention rate\n- Study time\n- Streaks\n- Recommendations
+
+    RS -> DB: Save WeeklyReport
+    activate DB
+    DB --> RS: Saved
+    deactivate DB
+
+    RS -> NS: sendWeeklyReport(userId, report)
+    activate NS
+    NS --> RS: Sent
+    deactivate NS
+end
+
+deactivate RS
+
+@enduml
