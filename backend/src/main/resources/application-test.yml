@@ -1,0 +1,14 @@
+# Test configuration
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/nihongo_master_test
+
+jwt:
+  secret: test-secret-key-must-be-at-least-256-bits-long-for-hs256-algorithm
+  access-token-expiration: 3600000
+  refresh-token-expiration: 86400000
+
+logging:
+  level:
+    com.nihongomaster: DEBUG

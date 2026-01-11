@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: nihongo-master
+
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/nihongo_master}
+      auto-index-creation: true
+
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:nihongo-master-secret-key-must-be-at-least-256-bits-long-for-hs256}
+  access-token-expiration: ${JWT_ACCESS_EXPIRATION:3600000}      # 1 hour in milliseconds
+  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:2592000000} # 30 days in milliseconds
+
+# Logging
+logging:
+  level:
+    com.nihongomaster: DEBUG
+    org.springframework.security: INFO
+    org.springframework.data.mongodb: INFO
+
+# OpenAPI
+springdoc:
+  api-docs:
+    path: /api/v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
