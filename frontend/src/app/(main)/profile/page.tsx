@@ -4,18 +4,17 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   User,
-  Settings,
   Calendar,
-  Target,
   Clock,
   Flame,
   Award,
   BookOpen,
-  TrendingUp,
   Edit,
   ChevronRight,
   Globe,
   Mail,
+  Mic,
+  Video,
 } from "lucide-react";
 import {
   Card,
@@ -26,112 +25,56 @@ import {
   Tabs,
   TabsList,
   TabsTrigger,
+  LoadingPage,
 } from "@/components/ui";
-
-const mockUser = {
-  name: "Alex Johnson",
-  username: "alexj",
-  email: "alex.johnson@email.com",
-  avatar: "",
-  level: "N4",
-  joinedAt: "2023-06-15",
-  timezone: "UTC-5",
-  bio: "Japanese language enthusiast. Currently preparing for JLPT N3. Love anime and J-drama!",
-  stats: {
-    streak: 42,
-    totalDays: 180,
-    totalHours: 156,
-    wordsLearned: 1250,
-    videosWatched: 45,
-    postsWritten: 12,
-  },
-  achievements: [
-    {
-      id: "a1",
-      name: "First Steps",
-      description: "Complete your first practice session",
-      icon: "award",
-      earnedAt: "2023-06-15",
-    },
-    {
-      id: "a2",
-      name: "Week Warrior",
-      description: "Maintain a 7-day streak",
-      icon: "flame",
-      earnedAt: "2023-06-22",
-    },
-    {
-      id: "a3",
-      name: "Vocabulary Master",
-      description: "Learn 1000 words",
-      icon: "book",
-      earnedAt: "2024-01-10",
-    },
-    {
-      id: "a4",
-      name: "Month Milestone",
-      description: "Maintain a 30-day streak",
-      icon: "flame",
-      earnedAt: "2023-07-15",
-    },
-  ],
-  skillLevels: {
-    reading: 68,
-    listening: 55,
-    speaking: 42,
-    vocabulary: 72,
-    grammar: 58,
-  },
-  recentActivity: [
-    {
-      type: "practice",
-      title: "Shadowing Practice",
-      description: "Daily Conversation - Episode 5",
-      date: "Today",
-      score: 85,
-    },
-    {
-      type: "vocabulary",
-      title: "Flashcard Review",
-      description: "JLPT N4 Vocabulary",
-      date: "Today",
-      score: 92,
-    },
-    {
-      type: "post",
-      title: "New Post",
-      description: "Tips for learning kanji",
-      date: "Yesterday",
-    },
-    {
-      type: "video",
-      title: "Video Completed",
-      description: "Business Japanese Basics",
-      date: "2 days ago",
-    },
-  ],
-};
+import { useAuth } from "@/lib/auth-context";
+import { getLevelColor } from "@/lib/hooks";
 
 export default function ProfilePage() {
+  const { user, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
+
+  if (isLoading || !user) {
+    return <LoadingPage message="Loading profile..." />;
+  }
+
+  const skillLevels = {
+    Listening: user.progress?.listeningScore || 0,
+    Speaking: user.progress?.speakingScore || 0,
+    Vocabulary: user.progress?.vocabularyScore || 0,
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
-          <div className="w-20 h-20 bg-neutral-700 rounded-full flex items-center justify-center">
-            <User className="w-10 h-10 text-neutral-400" />
+          <div className="w-20 h-20 bg-neutral-700 rounded-full flex items-center justify-center overflow-hidden">
+            {user.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={user.displayName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <User className="w-10 h-10 text-neutral-400" />
+            )}
           </div>
           <div>
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-2xl font-heading font-semibold text-neutral-200">
-                {mockUser.name}
+                {user.displayName || user.username}
               </h1>
-              <Badge variant="yellow">{mockUser.level}</Badge>
+              {user.targetLevel && (
+                <Badge variant={getLevelColor(user.targetLevel) as any}>
+                  {user.targetLevel}
+                </Badge>
+              )}
             </div>
-            <p className="text-neutral-400">@{mockUser.username}</p>
-            <p className="text-sm text-neutral-400 mt-1">{mockUser.bio}</p>
+            <p className="text-neutral-400">@{user.username}</p>
+            {user.bio && (
+              <p className="text-sm text-neutral-400 mt-1">{user.bio}</p>
+            )}
           </div>
         </div>
         <Button variant="secondary" size="sm">
@@ -149,7 +92,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <p className="text-2xl font-heading font-semibold text-neutral-200">
-                {mockUser.stats.streak}
+                {user.progress?.streak || 0}
               </p>
               <p className="text-sm text-neutral-400">Day Streak</p>
             </div>
@@ -163,7 +106,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <p className="text-2xl font-heading font-semibold text-neutral-200">
-                {mockUser.stats.totalHours}h
+                {Math.round((user.progress?.totalPracticeMinutes || 0) / 60)}h
               </p>
               <p className="text-sm text-neutral-400">Study Time</p>
             </div>
@@ -177,7 +120,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <p className="text-2xl font-heading font-semibold text-neutral-200">
-                {mockUser.stats.wordsLearned}
+                {user.progress?.vocabMastered || 0}
               </p>
               <p className="text-sm text-neutral-400">Words Learned</p>
             </div>
@@ -187,13 +130,13 @@ export default function ProfilePage() {
         <Card>
           <CardContent className="flex items-center gap-3">
             <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
-              <Award className="w-5 h-5 text-purple-500" />
+              <Video className="w-5 h-5 text-purple-500" />
             </div>
             <div>
               <p className="text-2xl font-heading font-semibold text-neutral-200">
-                {mockUser.achievements.length}
+                {user.progress?.videosCompleted || 0}
               </p>
-              <p className="text-sm text-neutral-400">Achievements</p>
+              <p className="text-sm text-neutral-400">Videos Watched</p>
             </div>
           </CardContent>
         </Card>
@@ -203,7 +146,7 @@ export default function ProfilePage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="achievements">Achievements</TabsTrigger>
+          <TabsTrigger value="stats">Statistics</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
       </Tabs>
@@ -217,7 +160,7 @@ export default function ProfilePage() {
                 Skill Levels
               </h3>
               <div className="space-y-4">
-                {Object.entries(mockUser.skillLevels).map(([skill, level]) => (
+                {Object.entries(skillLevels).map(([skill, level]) => (
                   <div key={skill}>
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-neutral-400 capitalize">{skill}</span>
@@ -236,36 +179,42 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Recent Activity */}
+          {/* Statistics Summary */}
           <Card>
             <CardContent>
               <h3 className="font-heading font-semibold text-neutral-200 mb-4">
-                Recent Activity
+                Progress Summary
               </h3>
               <div className="space-y-3">
-                {mockUser.recentActivity.map((activity, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 bg-neutral-900 border border-neutral-700 rounded-lg"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-neutral-200">
-                        {activity.title}
-                      </p>
-                      <p className="text-xs text-neutral-400">
-                        {activity.description}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      {activity.score && (
-                        <Badge variant="green">{activity.score}%</Badge>
-                      )}
-                      <p className="text-xs text-neutral-400 mt-1">
-                        {activity.date}
-                      </p>
-                    </div>
+                <div className="flex items-center justify-between p-3 bg-neutral-900 border border-neutral-700 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Flame className="w-5 h-5 text-yellow-500" />
+                    <span className="text-neutral-200">Max Streak</span>
                   </div>
-                ))}
+                  <span className="text-neutral-200 font-medium">
+                    {user.progress?.maxStreak || 0} days
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-neutral-900 border border-neutral-700 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Award className="w-5 h-5 text-green-500" />
+                    <span className="text-neutral-200">Total XP</span>
+                  </div>
+                  <span className="text-neutral-200 font-medium">
+                    {user.progress?.totalXP || 0}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-neutral-900 border border-neutral-700 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Mic className="w-5 h-5 text-blue-500" />
+                    <span className="text-neutral-200">Speaking Score</span>
+                  </div>
+                  <span className="text-neutral-200 font-medium">
+                    {user.progress?.speakingScore || 0}%
+                  </span>
+                </div>
               </div>
               <Link href="/history">
                 <Button variant="secondary" size="sm" className="w-full mt-4">
@@ -278,34 +227,55 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {activeTab === "achievements" && (
+      {activeTab === "stats" && (
         <Card>
           <CardContent>
             <h3 className="font-heading font-semibold text-neutral-200 mb-4">
-              Achievements ({mockUser.achievements.length})
+              Detailed Statistics
             </h3>
             <div className="grid sm:grid-cols-2 gap-4">
-              {mockUser.achievements.map((achievement) => (
-                <div
-                  key={achievement.id}
-                  className="flex items-center gap-4 p-4 bg-neutral-900 border border-neutral-700 rounded-lg"
-                >
-                  <div className="w-12 h-12 bg-yellow-500/10 rounded-xl flex items-center justify-center">
-                    <Award className="w-6 h-6 text-yellow-500" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-neutral-200">
-                      {achievement.name}
-                    </p>
-                    <p className="text-sm text-neutral-400">
-                      {achievement.description}
-                    </p>
-                    <p className="text-xs text-neutral-400 mt-1">
-                      Earned {achievement.earnedAt}
-                    </p>
-                  </div>
-                </div>
-              ))}
+              <div className="p-4 bg-neutral-900 border border-neutral-700 rounded-lg">
+                <p className="text-sm text-neutral-400 mb-1">Total Practice Time</p>
+                <p className="text-2xl font-heading font-semibold text-neutral-200">
+                  {Math.round((user.progress?.totalPracticeMinutes || 0) / 60)}h{" "}
+                  {(user.progress?.totalPracticeMinutes || 0) % 60}m
+                </p>
+              </div>
+
+              <div className="p-4 bg-neutral-900 border border-neutral-700 rounded-lg">
+                <p className="text-sm text-neutral-400 mb-1">Vocabulary Mastered</p>
+                <p className="text-2xl font-heading font-semibold text-neutral-200">
+                  {user.progress?.vocabMastered || 0} words
+                </p>
+              </div>
+
+              <div className="p-4 bg-neutral-900 border border-neutral-700 rounded-lg">
+                <p className="text-sm text-neutral-400 mb-1">Videos Completed</p>
+                <p className="text-2xl font-heading font-semibold text-neutral-200">
+                  {user.progress?.videosCompleted || 0} videos
+                </p>
+              </div>
+
+              <div className="p-4 bg-neutral-900 border border-neutral-700 rounded-lg">
+                <p className="text-sm text-neutral-400 mb-1">Total XP Earned</p>
+                <p className="text-2xl font-heading font-semibold text-neutral-200">
+                  {user.progress?.totalXP || 0} XP
+                </p>
+              </div>
+
+              <div className="p-4 bg-neutral-900 border border-neutral-700 rounded-lg">
+                <p className="text-sm text-neutral-400 mb-1">Followers</p>
+                <p className="text-2xl font-heading font-semibold text-neutral-200">
+                  {user.followersCount || 0}
+                </p>
+              </div>
+
+              <div className="p-4 bg-neutral-900 border border-neutral-700 rounded-lg">
+                <p className="text-sm text-neutral-400 mb-1">Following</p>
+                <p className="text-2xl font-heading font-semibold text-neutral-200">
+                  {user.followingCount || 0}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -324,20 +294,19 @@ export default function ProfilePage() {
                     <Mail className="w-5 h-5 text-neutral-400" />
                     <div>
                       <p className="text-sm text-neutral-400">Email</p>
-                      <p className="text-neutral-200">{mockUser.email}</p>
+                      <p className="text-neutral-200">{user.email}</p>
                     </div>
                   </div>
-                  <Button variant="secondary" size="sm">
-                    Change
-                  </Button>
                 </div>
 
                 <div className="flex items-center justify-between p-3 bg-neutral-900 border border-neutral-700 rounded-lg">
                   <div className="flex items-center gap-3">
                     <Globe className="w-5 h-5 text-neutral-400" />
                     <div>
-                      <p className="text-sm text-neutral-400">Timezone</p>
-                      <p className="text-neutral-200">{mockUser.timezone}</p>
+                      <p className="text-sm text-neutral-400">Native Language</p>
+                      <p className="text-neutral-200">
+                        {user.nativeLanguage || "Not set"}
+                      </p>
                     </div>
                   </div>
                   <Button variant="secondary" size="sm">
@@ -350,7 +319,9 @@ export default function ProfilePage() {
                     <Calendar className="w-5 h-5 text-neutral-400" />
                     <div>
                       <p className="text-sm text-neutral-400">Member Since</p>
-                      <p className="text-neutral-200">{mockUser.joinedAt}</p>
+                      <p className="text-neutral-200">
+                        {new Date(user.createdAt).toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -368,20 +339,46 @@ export default function ProfilePage() {
                   <div>
                     <p className="text-neutral-200">Daily Goal</p>
                     <p className="text-sm text-neutral-400">
-                      Set your daily practice target
+                      Minutes of practice per day
                     </p>
                   </div>
-                  <Badge variant="yellow">3 sessions</Badge>
+                  <Badge variant="yellow">
+                    {user.preferences?.dailyGoalMinutes || 30} min
+                  </Badge>
                 </div>
 
                 <div className="flex items-center justify-between p-3 bg-neutral-900 border border-neutral-700 rounded-lg">
                   <div>
-                    <p className="text-neutral-200">Current Level</p>
+                    <p className="text-neutral-200">Target Level</p>
+                    <p className="text-sm text-neutral-400">Your JLPT target</p>
+                  </div>
+                  <Badge variant={getLevelColor(user.targetLevel || "N5") as any}>
+                    {user.targetLevel || "N5"}
+                  </Badge>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-neutral-900 border border-neutral-700 rounded-lg">
+                  <div>
+                    <p className="text-neutral-200">Show Furigana</p>
                     <p className="text-sm text-neutral-400">
-                      Your JLPT target level
+                      Display reading hints on kanji
                     </p>
                   </div>
-                  <Badge variant="yellow">{mockUser.level}</Badge>
+                  <Badge variant={user.preferences?.showFurigana ? "green" : "default"}>
+                    {user.preferences?.showFurigana ? "On" : "Off"}
+                  </Badge>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-neutral-900 border border-neutral-700 rounded-lg">
+                  <div>
+                    <p className="text-neutral-200">Auto-play Audio</p>
+                    <p className="text-sm text-neutral-400">
+                      Automatically play pronunciation
+                    </p>
+                  </div>
+                  <Badge variant={user.preferences?.autoPlayAudio ? "green" : "default"}>
+                    {user.preferences?.autoPlayAudio ? "On" : "Off"}
+                  </Badge>
                 </div>
               </div>
             </CardContent>

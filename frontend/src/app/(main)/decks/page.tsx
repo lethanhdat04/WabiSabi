@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -22,101 +22,73 @@ import {
   Tabs,
   TabsList,
   TabsTrigger,
+  LoadingPage,
+  ErrorPage,
+  EmptyState,
 } from "@/components/ui";
-
-const mockDecks = [
-  {
-    id: "d1",
-    name: "JLPT N5 Vocabulary",
-    description: "Essential vocabulary for JLPT N5 exam preparation",
-    cardCount: 800,
-    learnedCount: 320,
-    level: "N5",
-    isPublic: true,
-    author: "Nihongo Master",
-    category: "JLPT",
-  },
-  {
-    id: "d2",
-    name: "Daily Conversation",
-    description: "Common phrases for everyday Japanese conversations",
-    cardCount: 250,
-    learnedCount: 180,
-    level: "Beginner",
-    isPublic: true,
-    author: "Nihongo Master",
-    category: "Conversation",
-  },
-  {
-    id: "d3",
-    name: "My Custom Deck",
-    description: "Personal vocabulary collection from anime",
-    cardCount: 45,
-    learnedCount: 12,
-    level: "Mixed",
-    isPublic: false,
-    author: "You",
-    category: "Custom",
-  },
-  {
-    id: "d4",
-    name: "Business Japanese",
-    description: "Professional vocabulary for workplace communication",
-    cardCount: 300,
-    learnedCount: 0,
-    level: "Intermediate",
-    isPublic: true,
-    author: "Nihongo Master",
-    category: "Business",
-  },
-  {
-    id: "d5",
-    name: "Kanji Radicals",
-    description: "Learn the building blocks of kanji characters",
-    cardCount: 214,
-    learnedCount: 50,
-    level: "Beginner",
-    isPublic: true,
-    author: "Community",
-    category: "Kanji",
-  },
-  {
-    id: "d6",
-    name: "Anime Vocabulary",
-    description: "Popular words and phrases from anime series",
-    cardCount: 150,
-    learnedCount: 75,
-    level: "Mixed",
-    isPublic: true,
-    author: "Community",
-    category: "Entertainment",
-  },
-];
-
-const categories = ["All", "JLPT", "Conversation", "Business", "Kanji", "Custom"];
+import { deckApi, VocabularyDeck, PageResponse } from "@/lib/api-client";
+import { getLevelColor } from "@/lib/hooks";
 
 export default function DecksPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedLevel, setSelectedLevel] = useState("All");
+  const [decks, setDecks] = useState<VocabularyDeck[]>([]);
+  const [myDecks, setMyDecks] = useState<VocabularyDeck[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredDecks = mockDecks.filter((deck) => {
+  const levels = ["All", "N5", "N4", "N3", "N2", "N1"];
+
+  useEffect(() => {
+    async function fetchDecks() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [allDecksRes, myDecksRes] = await Promise.all([
+          deckApi.getAll({ size: 50 }).catch(() => ({ content: [] } as PageResponse<VocabularyDeck>)),
+          deckApi.getMyDecks(0, 50).catch(() => ({ content: [] } as PageResponse<VocabularyDeck>)),
+        ]);
+        setDecks(allDecksRes.content || []);
+        setMyDecks(myDecksRes.content || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load decks");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchDecks();
+  }, []);
+
+  // Filter decks based on search, tab, and level
+  const filteredDecks = decks.filter((deck) => {
     const matchesSearch =
-      deck.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      searchQuery === "" ||
+      deck.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       deck.description.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const isMyDeck = myDecks.some((d) => d.id === deck.id);
     const matchesTab =
       activeTab === "all" ||
-      (activeTab === "my-decks" && deck.author === "You") ||
-      (activeTab === "public" && deck.isPublic && deck.author !== "You");
-    const matchesCategory =
-      selectedCategory === "All" || deck.category === selectedCategory;
-    return matchesSearch && matchesTab && matchesCategory;
+      (activeTab === "my-decks" && isMyDeck) ||
+      (activeTab === "public" && deck.isPublic && !isMyDeck);
+
+    const matchesLevel =
+      selectedLevel === "All" || deck.level === selectedLevel;
+
+    return matchesSearch && matchesTab && matchesLevel;
   });
 
-  const myDecksCount = mockDecks.filter((d) => d.author === "You").length;
-  const publicDecksCount = mockDecks.filter(
-    (d) => d.isPublic && d.author !== "You"
-  ).length;
+  const myDecksCount = myDecks.length;
+  const publicDecksCount = decks.filter((d) => d.isPublic && !myDecks.some((m) => m.id === d.id)).length;
+
+  if (isLoading) {
+    return <LoadingPage message="Loading vocabulary decks..." />;
+  }
+
+  if (error) {
+    return <ErrorPage title="Error loading decks" message={error} />;
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -145,7 +117,7 @@ export default function DecksPage() {
             </div>
             <div>
               <p className="text-2xl font-heading font-semibold text-neutral-200">
-                {mockDecks.length}
+                {decks.length}
               </p>
               <p className="text-sm text-neutral-400">Total Decks</p>
             </div>
@@ -159,9 +131,17 @@ export default function DecksPage() {
             </div>
             <div>
               <p className="text-2xl font-heading font-semibold text-neutral-200">
-                {mockDecks.reduce((acc, d) => acc + d.learnedCount, 0)}
+                {decks.reduce(
+                  (acc, d) =>
+                    acc +
+                    (d.sections?.reduce(
+                      (sAcc, s) => sAcc + (s.items?.length || 0),
+                      0
+                    ) || 0),
+                  0
+                )}
               </p>
-              <p className="text-sm text-neutral-400">Cards Learned</p>
+              <p className="text-sm text-neutral-400">Total Cards</p>
             </div>
           </CardContent>
         </Card>
@@ -185,7 +165,7 @@ export default function DecksPage() {
       <div className="flex flex-col sm:flex-row gap-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
-            <TabsTrigger value="all">All ({mockDecks.length})</TabsTrigger>
+            <TabsTrigger value="all">All ({decks.length})</TabsTrigger>
             <TabsTrigger value="my-decks">My Decks ({myDecksCount})</TabsTrigger>
             <TabsTrigger value="public">Public ({publicDecksCount})</TabsTrigger>
           </TabsList>
@@ -204,19 +184,19 @@ export default function DecksPage() {
         </div>
       </div>
 
-      {/* Category Filter */}
+      {/* Level Filter */}
       <div className="flex gap-2 flex-wrap">
-        {categories.map((category) => (
+        {levels.map((level) => (
           <button
-            key={category}
-            onClick={() => setSelectedCategory(category)}
+            key={level}
+            onClick={() => setSelectedLevel(level)}
             className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-              selectedCategory === category
+              selectedLevel === level
                 ? "bg-yellow-500 text-neutral-900"
                 : "bg-neutral-800 text-neutral-400 border border-neutral-700 hover:text-neutral-200"
             }`}
           >
-            {category}
+            {level}
           </button>
         ))}
       </div>
@@ -224,10 +204,12 @@ export default function DecksPage() {
       {/* Decks Grid */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredDecks.map((deck) => {
-          const progressPercent =
-            deck.cardCount > 0
-              ? Math.round((deck.learnedCount / deck.cardCount) * 100)
-              : 0;
+          const totalCards =
+            deck.sections?.reduce(
+              (acc, s) => acc + (s.items?.length || 0),
+              0
+            ) || 0;
+          const progressPercent = Math.round(deck.stats?.completionRate || 0);
 
           return (
             <Link key={deck.id} href={`/decks/${deck.id}`}>
@@ -243,12 +225,14 @@ export default function DecksPage() {
                       ) : (
                         <Lock className="w-4 h-4 text-neutral-400" />
                       )}
-                      <Badge variant="yellow">{deck.level}</Badge>
+                      <Badge variant={getLevelColor(deck.level) as any}>
+                        {deck.level}
+                      </Badge>
                     </div>
                   </div>
 
                   <h3 className="font-heading font-semibold text-neutral-200 mb-1">
-                    {deck.name}
+                    {deck.title}
                   </h3>
                   <p className="text-sm text-neutral-400 line-clamp-2 mb-4 flex-1">
                     {deck.description}
@@ -256,16 +240,14 @@ export default function DecksPage() {
 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-neutral-400">
-                        {deck.learnedCount} / {deck.cardCount} cards
-                      </span>
+                      <span className="text-neutral-400">{totalCards} cards</span>
                       <span className="text-neutral-200">{progressPercent}%</span>
                     </div>
                     <Progress value={progressPercent} size="sm" />
 
                     <div className="flex items-center justify-between pt-2 border-t border-neutral-700">
                       <span className="text-xs text-neutral-400">
-                        by {deck.author}
+                        {deck.isOfficial ? "Official" : "Community"}
                       </span>
                       <ChevronRight className="w-4 h-4 text-neutral-400" />
                     </div>
@@ -278,12 +260,11 @@ export default function DecksPage() {
       </div>
 
       {filteredDecks.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Layers className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
-            <p className="text-neutral-400">No decks found</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<Layers className="w-8 h-8 text-neutral-400" />}
+          title="No decks found"
+          description="Try adjusting your search or filters"
+        />
       )}
     </div>
   );

@@ -51,8 +51,13 @@ class SecurityConfig(
 
                     // Public read access to certain resources
                     .requestMatchers(HttpMethod.GET, "/api/videos/**").permitAll()
-                    .requestMatchers(HttpMethod.GET, "/api/decks/public/**").permitAll()
-                    .requestMatchers(HttpMethod.GET, "/api/community/posts/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/vocabulary/decks").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/vocabulary/decks/*/summary").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/vocabulary/decks/official").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/vocabulary/decks/popular").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/vocabulary/decks/search").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/forum/posts/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/forum/comments/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/users/profile/**").permitAll()
 
                     // Admin endpoints

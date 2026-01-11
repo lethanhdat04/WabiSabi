@@ -1,17 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
 import {
-  ArrowLeft,
   Calendar,
   Clock,
   Target,
   Mic,
   PenTool,
   Layers,
-  PlayCircle,
-  Filter,
   ChevronRight,
 } from "lucide-react";
 import {
@@ -19,150 +15,92 @@ import {
   CardContent,
   Button,
   Badge,
-  Progress,
   Tabs,
   TabsList,
   TabsTrigger,
+  LoadingPage,
+  ErrorPage,
+  EmptyState,
 } from "@/components/ui";
+import { useAuth } from "@/lib/auth-context";
+import {
+  dictationApi,
+  shadowingApi,
+  DictationAttempt,
+  ShadowingAttempt,
+} from "@/lib/api-client";
+import { formatRelativeTime } from "@/lib/hooks";
 
 interface HistoryItem {
   id: string;
-  type: "shadowing" | "dictation" | "flashcard" | "fill-in" | "video";
+  type: "shadowing" | "dictation";
   title: string;
   description: string;
   date: string;
-  time: string;
-  duration: number;
-  score?: number;
+  score: number;
   details?: {
-    accuracy?: number;
+    pronunciation?: number;
     speed?: number;
     intonation?: number;
-    cardsReviewed?: number;
-    wordsLearned?: number;
+    accuracy?: number;
   };
 }
 
-const mockHistory: HistoryItem[] = [
-  {
-    id: "h1",
-    type: "shadowing",
-    title: "Shadowing Practice",
-    description: "Daily Conversation - Episode 5",
-    date: "2024-01-15",
-    time: "10:30 AM",
-    duration: 12,
-    score: 85,
-    details: {
-      accuracy: 88,
-      speed: 82,
-      intonation: 85,
-    },
-  },
-  {
-    id: "h2",
-    type: "flashcard",
-    title: "Flashcard Review",
-    description: "JLPT N4 Vocabulary",
-    date: "2024-01-15",
-    time: "9:15 AM",
-    duration: 8,
-    score: 92,
-    details: {
-      cardsReviewed: 25,
-      wordsLearned: 5,
-    },
-  },
-  {
-    id: "h3",
-    type: "dictation",
-    title: "Dictation Practice",
-    description: "News Headlines - Easy",
-    date: "2024-01-14",
-    time: "8:00 PM",
-    duration: 15,
-    score: 78,
-    details: {
-      accuracy: 78,
-    },
-  },
-  {
-    id: "h4",
-    type: "video",
-    title: "Video Lesson",
-    description: "Business Japanese Basics",
-    date: "2024-01-14",
-    time: "6:30 PM",
-    duration: 20,
-  },
-  {
-    id: "h5",
-    type: "fill-in",
-    title: "Fill-in-the-Blank",
-    description: "Grammar Practice - N4",
-    date: "2024-01-14",
-    time: "2:00 PM",
-    duration: 10,
-    score: 88,
-  },
-  {
-    id: "h6",
-    type: "shadowing",
-    title: "Shadowing Practice",
-    description: "Anime Dialogue - Slice of Life",
-    date: "2024-01-13",
-    time: "7:00 PM",
-    duration: 18,
-    score: 72,
-    details: {
-      accuracy: 75,
-      speed: 68,
-      intonation: 73,
-    },
-  },
-  {
-    id: "h7",
-    type: "flashcard",
-    title: "Flashcard Review",
-    description: "Kanji Radicals",
-    date: "2024-01-13",
-    time: "9:00 AM",
-    duration: 12,
-    score: 85,
-    details: {
-      cardsReviewed: 40,
-      wordsLearned: 8,
-    },
-  },
-  {
-    id: "h8",
-    type: "dictation",
-    title: "Dictation Practice",
-    description: "Podcast Excerpt - Intermediate",
-    date: "2024-01-12",
-    time: "5:00 PM",
-    duration: 20,
-    score: 65,
-    details: {
-      accuracy: 65,
-    },
-  },
-];
-
-const mockStats = {
-  totalSessions: 156,
-  totalTime: 2340,
-  averageScore: 82,
-  thisWeek: {
-    sessions: 12,
-    time: 180,
-    avgScore: 84,
-  },
-};
-
 export default function HistoryPage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("all");
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [dictationAttempts, setDictationAttempts] = useState<DictationAttempt[]>([]);
+  const [shadowingAttempts, setShadowingAttempts] = useState<ShadowingAttempt[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchHistory() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [dictation, shadowing] = await Promise.all([
+          dictationApi.getMyAttempts(0, 50).catch(() => ({ content: [] })),
+          shadowingApi.getMyAttempts(0, 50).catch(() => ({ content: [] })),
+        ]);
+        setDictationAttempts(dictation.content || []);
+        setShadowingAttempts(shadowing.content || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load history");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchHistory();
+  }, []);
+
+  // Convert attempts to history items
+  const historyItems: HistoryItem[] = [
+    ...dictationAttempts.map((attempt): HistoryItem => ({
+      id: attempt.id,
+      type: "dictation",
+      title: "Dictation Practice",
+      description: `Video ${attempt.videoId} - Segment ${attempt.segmentIndex + 1}`,
+      date: attempt.createdAt,
+      score: Math.round(attempt.evaluation?.overallScore || 0),
+      details: {
+        accuracy: Math.round(attempt.evaluation?.accuracyScore || 0),
+      },
+    })),
+    ...shadowingAttempts.map((attempt): HistoryItem => ({
+      id: attempt.id,
+      type: "shadowing",
+      title: "Shadowing Practice",
+      description: `Video ${attempt.videoId} - Segment ${attempt.segmentIndex + 1}`,
+      date: attempt.createdAt,
+      score: Math.round(attempt.evaluation?.overallScore || 0),
+      details: {
+        pronunciation: Math.round(attempt.evaluation?.pronunciationScore || 0),
+        speed: Math.round(attempt.evaluation?.speedScore || 0),
+        intonation: Math.round(attempt.evaluation?.intonationScore || 0),
+      },
+    })),
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -170,12 +108,6 @@ export default function HistoryPage() {
         return <Mic className="w-5 h-5 text-yellow-500" />;
       case "dictation":
         return <PenTool className="w-5 h-5 text-blue-500" />;
-      case "flashcard":
-        return <Layers className="w-5 h-5 text-green-500" />;
-      case "fill-in":
-        return <PenTool className="w-5 h-5 text-purple-500" />;
-      case "video":
-        return <PlayCircle className="w-5 h-5 text-red-500" />;
       default:
         return <Target className="w-5 h-5 text-neutral-400" />;
     }
@@ -187,24 +119,19 @@ export default function HistoryPage() {
         return "bg-yellow-500/10";
       case "dictation":
         return "bg-blue-500/10";
-      case "flashcard":
-        return "bg-green-500/10";
-      case "fill-in":
-        return "bg-purple-500/10";
-      case "video":
-        return "bg-red-500/10";
       default:
         return "bg-neutral-700";
     }
   };
 
-  const filteredHistory = mockHistory.filter((item) => {
+  const filteredHistory = historyItems.filter((item) => {
     if (activeTab === "all") return true;
     return item.type === activeTab;
   });
 
+  // Group by date
   const groupedHistory = filteredHistory.reduce((groups, item) => {
-    const date = item.date;
+    const date = item.date.split("T")[0];
     if (!groups[date]) {
       groups[date] = [];
     }
@@ -231,6 +158,23 @@ export default function HistoryPage() {
     });
   };
 
+  if (isLoading) {
+    return <LoadingPage message="Loading practice history..." />;
+  }
+
+  if (error) {
+    return <ErrorPage title="Error loading history" message={error} />;
+  }
+
+  const totalSessions = historyItems.length;
+  const totalTime = user?.progress?.totalPracticeMinutes || 0;
+  const avgScore =
+    historyItems.length > 0
+      ? Math.round(
+          historyItems.reduce((acc, i) => acc + i.score, 0) / historyItems.length
+        )
+      : 0;
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -254,7 +198,7 @@ export default function HistoryPage() {
         <Card>
           <CardContent className="text-center">
             <p className="text-2xl font-heading font-semibold text-neutral-200">
-              {mockStats.totalSessions}
+              {totalSessions}
             </p>
             <p className="text-sm text-neutral-400">Total Sessions</p>
           </CardContent>
@@ -262,7 +206,7 @@ export default function HistoryPage() {
         <Card>
           <CardContent className="text-center">
             <p className="text-2xl font-heading font-semibold text-neutral-200">
-              {Math.round(mockStats.totalTime / 60)}h
+              {Math.round(totalTime / 60)}h
             </p>
             <p className="text-sm text-neutral-400">Total Time</p>
           </CardContent>
@@ -270,7 +214,7 @@ export default function HistoryPage() {
         <Card>
           <CardContent className="text-center">
             <p className="text-2xl font-heading font-semibold text-neutral-200">
-              {mockStats.averageScore}%
+              {avgScore}%
             </p>
             <p className="text-sm text-neutral-400">Avg. Score</p>
           </CardContent>
@@ -278,9 +222,9 @@ export default function HistoryPage() {
         <Card>
           <CardContent className="text-center">
             <p className="text-2xl font-heading font-semibold text-neutral-200">
-              {mockStats.thisWeek.sessions}
+              {user?.progress?.streak || 0}
             </p>
-            <p className="text-sm text-neutral-400">This Week</p>
+            <p className="text-sm text-neutral-400">Day Streak</p>
           </CardContent>
         </Card>
       </div>
@@ -288,11 +232,13 @@ export default function HistoryPage() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="shadowing">Shadowing</TabsTrigger>
-          <TabsTrigger value="dictation">Dictation</TabsTrigger>
-          <TabsTrigger value="flashcard">Flashcards</TabsTrigger>
-          <TabsTrigger value="video">Videos</TabsTrigger>
+          <TabsTrigger value="all">All ({historyItems.length})</TabsTrigger>
+          <TabsTrigger value="shadowing">
+            Shadowing ({shadowingAttempts.length})
+          </TabsTrigger>
+          <TabsTrigger value="dictation">
+            Dictation ({dictationAttempts.length})
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -321,30 +267,24 @@ export default function HistoryPage() {
                             {item.title}
                           </h4>
                           <span className="text-sm text-neutral-400">
-                            {item.time}
+                            {formatRelativeTime(item.date)}
                           </span>
                         </div>
                         <p className="text-sm text-neutral-400 mb-2">
                           {item.description}
                         </p>
                         <div className="flex items-center gap-4 text-sm">
-                          <span className="flex items-center gap-1 text-neutral-400">
-                            <Clock className="w-4 h-4" />
-                            {item.duration} min
-                          </span>
-                          {item.score !== undefined && (
-                            <Badge
-                              variant={
-                                item.score >= 80
-                                  ? "green"
-                                  : item.score >= 60
-                                  ? "yellow"
-                                  : "red"
-                              }
-                            >
-                              {item.score}%
-                            </Badge>
-                          )}
+                          <Badge
+                            variant={
+                              item.score >= 80
+                                ? "green"
+                                : item.score >= 60
+                                ? "yellow"
+                                : "red"
+                            }
+                          >
+                            {item.score}%
+                          </Badge>
                         </div>
 
                         {/* Details */}
@@ -358,6 +298,16 @@ export default function HistoryPage() {
                                   </span>
                                   <span className="text-neutral-200">
                                     {item.details.accuracy}%
+                                  </span>
+                                </div>
+                              )}
+                              {item.details.pronunciation !== undefined && (
+                                <div>
+                                  <span className="text-neutral-400">
+                                    Pronunciation:{" "}
+                                  </span>
+                                  <span className="text-neutral-200">
+                                    {item.details.pronunciation}%
                                   </span>
                                 </div>
                               )}
@@ -381,26 +331,6 @@ export default function HistoryPage() {
                                   </span>
                                 </div>
                               )}
-                              {item.details.cardsReviewed !== undefined && (
-                                <div>
-                                  <span className="text-neutral-400">
-                                    Cards:{" "}
-                                  </span>
-                                  <span className="text-neutral-200">
-                                    {item.details.cardsReviewed}
-                                  </span>
-                                </div>
-                              )}
-                              {item.details.wordsLearned !== undefined && (
-                                <div>
-                                  <span className="text-neutral-400">
-                                    New Words:{" "}
-                                  </span>
-                                  <span className="text-neutral-200">
-                                    {item.details.wordsLearned}
-                                  </span>
-                                </div>
-                              )}
                             </div>
                           </div>
                         )}
@@ -416,12 +346,11 @@ export default function HistoryPage() {
       </div>
 
       {filteredHistory.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Clock className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
-            <p className="text-neutral-400">No practice history found</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<Clock className="w-8 h-8 text-neutral-400" />}
+          title="No practice history found"
+          description="Start practicing to see your history here"
+        />
       )}
     </div>
   );

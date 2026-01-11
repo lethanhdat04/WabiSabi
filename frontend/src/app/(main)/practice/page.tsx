@@ -1,11 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Mic,
   PenTool,
   Layers,
-  BarChart3,
   Clock,
   Target,
   ChevronRight,
@@ -14,58 +14,131 @@ import {
 } from "lucide-react";
 import {
   Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
   CardContent,
-  Button,
   Badge,
   Progress,
+  LoadingPage,
+  ErrorPage,
 } from "@/components/ui";
-import { mockPracticeStats } from "@/lib/mock-data";
+import { useAuth } from "@/lib/auth-context";
+import {
+  dictationApi,
+  shadowingApi,
+  practiceApi,
+  DictationStats,
+  ShadowingStats,
+  ProgressStats,
+} from "@/lib/api-client";
 
-const practiceModes = [
-  {
-    id: "shadowing",
-    title: "Shadowing Practice",
-    description: "Improve pronunciation by repeating after native speakers",
-    icon: Mic,
-    color: "yellow",
-    href: "/practice/shadowing",
-    stats: { sessions: 45, avgScore: 78 },
-  },
-  {
-    id: "dictation",
-    title: "Dictation Practice",
-    description: "Test your listening skills by typing what you hear",
-    icon: PenTool,
-    color: "blue",
-    href: "/practice/dictation",
-    stats: { sessions: 32, avgScore: 85 },
-  },
-  {
-    id: "flashcards",
-    title: "Flashcard Review",
-    description: "Review vocabulary with spaced repetition flashcards",
-    icon: Layers,
-    color: "green",
-    href: "/practice/flashcards",
-    stats: { sessions: 68, avgScore: 82 },
-  },
-  {
-    id: "fill-in",
-    title: "Fill-in-the-Blank",
-    description: "Test your knowledge by filling in missing words",
-    icon: PenTool,
-    color: "purple",
-    href: "/practice/fill-in",
-    stats: { sessions: 24, avgScore: 76 },
-  },
-];
-
-const recentSessions = mockPracticeStats.recentSessions;
+interface PracticeMode {
+  id: string;
+  title: string;
+  description: string;
+  icon: typeof Mic;
+  color: string;
+  href: string;
+  sessions: number;
+  avgScore: number;
+}
 
 export default function PracticePage() {
+  const { user } = useAuth();
+  const [dictationStats, setDictationStats] = useState<DictationStats | null>(null);
+  const [shadowingStats, setShadowingStats] = useState<ShadowingStats | null>(null);
+  const [vocabStats, setVocabStats] = useState<ProgressStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchStats() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [dictation, shadowing, vocab] = await Promise.all([
+          dictationApi.getStats().catch(() => null),
+          shadowingApi.getStats().catch(() => null),
+          practiceApi.getVocabularyStats().catch(() => null),
+        ]);
+        setDictationStats(dictation);
+        setShadowingStats(shadowing);
+        setVocabStats(vocab);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load stats");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchStats();
+  }, []);
+
+  if (isLoading) {
+    return <LoadingPage message="Loading practice stats..." />;
+  }
+
+  if (error) {
+    return <ErrorPage title="Error loading practice data" message={error} />;
+  }
+
+  const totalSessions =
+    (dictationStats?.totalAttempts || 0) +
+    (shadowingStats?.totalAttempts || 0) +
+    (vocabStats?.totalAttempts || 0);
+
+  const avgAccuracy = Math.round(
+    ((dictationStats?.averageAccuracy || 0) +
+      (shadowingStats?.averagePronunciation || 0) +
+      (vocabStats?.averageAccuracy || 0)) /
+      3
+  );
+
+  const streak = user?.progress?.streak || 0;
+  const totalTime = user?.progress?.totalPracticeMinutes || 0;
+  const dailyGoal = user?.preferences?.dailyGoalMinutes || 30;
+  const todayCompleted = vocabStats?.totalItemsPracticed || 0;
+
+  const practiceModes: PracticeMode[] = [
+    {
+      id: "shadowing",
+      title: "Shadowing Practice",
+      description: "Improve pronunciation by repeating after native speakers",
+      icon: Mic,
+      color: "yellow",
+      href: "/practice/shadowing",
+      sessions: shadowingStats?.totalAttempts || 0,
+      avgScore: Math.round(shadowingStats?.averagePronunciation || 0),
+    },
+    {
+      id: "dictation",
+      title: "Dictation Practice",
+      description: "Test your listening skills by typing what you hear",
+      icon: PenTool,
+      color: "blue",
+      href: "/practice/dictation",
+      sessions: dictationStats?.totalAttempts || 0,
+      avgScore: Math.round(dictationStats?.averageAccuracy || 0),
+    },
+    {
+      id: "flashcards",
+      title: "Flashcard Review",
+      description: "Review vocabulary with spaced repetition flashcards",
+      icon: Layers,
+      color: "green",
+      href: "/decks",
+      sessions: vocabStats?.totalAttempts || 0,
+      avgScore: Math.round(vocabStats?.averageAccuracy || 0),
+    },
+    {
+      id: "fill-in",
+      title: "Fill-in-the-Blank",
+      description: "Test your knowledge by filling in missing words",
+      icon: PenTool,
+      color: "purple",
+      href: "/decks",
+      sessions: 0,
+      avgScore: 0,
+    },
+  ];
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div>
@@ -86,7 +159,7 @@ export default function PracticePage() {
             </div>
             <div>
               <p className="text-2xl font-heading font-semibold text-neutral-200">
-                {mockPracticeStats.streak}
+                {streak}
               </p>
               <p className="text-sm text-neutral-400">Day Streak</p>
             </div>
@@ -100,7 +173,7 @@ export default function PracticePage() {
             </div>
             <div>
               <p className="text-2xl font-heading font-semibold text-neutral-200">
-                {mockPracticeStats.averageAccuracy}%
+                {avgAccuracy}%
               </p>
               <p className="text-sm text-neutral-400">Avg. Accuracy</p>
             </div>
@@ -114,7 +187,7 @@ export default function PracticePage() {
             </div>
             <div>
               <p className="text-2xl font-heading font-semibold text-neutral-200">
-                {Math.round(mockPracticeStats.totalTime / 60)}h
+                {Math.round(totalTime / 60)}h
               </p>
               <p className="text-sm text-neutral-400">Total Time</p>
             </div>
@@ -128,7 +201,7 @@ export default function PracticePage() {
             </div>
             <div>
               <p className="text-2xl font-heading font-semibold text-neutral-200">
-                {mockPracticeStats.totalSessions}
+                {totalSessions}
               </p>
               <p className="text-sm text-neutral-400">Sessions</p>
             </div>
@@ -145,31 +218,24 @@ export default function PracticePage() {
                 Today&apos;s Goal
               </h3>
               <p className="text-sm text-neutral-400">
-                {mockPracticeStats.todayProgress.completed} of{" "}
-                {mockPracticeStats.todayProgress.goal} sessions completed
+                {todayCompleted} of {dailyGoal} items practiced
               </p>
             </div>
             <div className="flex gap-2">
-              {Array.from({ length: mockPracticeStats.todayProgress.goal }).map(
-                (_, i) => (
-                  <div
-                    key={i}
-                    className={`w-3 h-3 rounded-full ${
-                      i < mockPracticeStats.todayProgress.completed
-                        ? "bg-yellow-500"
-                        : "bg-neutral-700 border border-neutral-600"
-                    }`}
-                  />
-                )
-              )}
+              {Array.from({ length: Math.min(dailyGoal, 5) }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`w-3 h-3 rounded-full ${
+                    i < Math.min(todayCompleted, dailyGoal)
+                      ? "bg-yellow-500"
+                      : "bg-neutral-700 border border-neutral-600"
+                  }`}
+                />
+              ))}
             </div>
           </div>
           <Progress
-            value={
-              (mockPracticeStats.todayProgress.completed /
-                mockPracticeStats.todayProgress.goal) *
-              100
-            }
+            value={Math.min((todayCompleted / dailyGoal) * 100, 100)}
             size="md"
           />
         </CardContent>
@@ -218,8 +284,8 @@ export default function PracticePage() {
                         {mode.description}
                       </p>
                       <div className="flex items-center gap-4 text-xs text-neutral-400">
-                        <span>{mode.stats.sessions} sessions</span>
-                        <span>Avg. {mode.stats.avgScore}%</span>
+                        <span>{mode.sessions} sessions</span>
+                        {mode.avgScore > 0 && <span>Avg. {mode.avgScore}%</span>}
                       </div>
                     </div>
                     <ChevronRight className="w-5 h-5 text-neutral-400 flex-shrink-0" />
@@ -231,83 +297,52 @@ export default function PracticePage() {
         </div>
       </div>
 
-      {/* Recent Sessions */}
-      <div>
-        <h2 className="text-lg font-heading font-semibold text-neutral-200 mb-4">
-          Recent Sessions
-        </h2>
-        <Card>
-          <CardContent className="divide-y divide-neutral-700">
-            {recentSessions.map((session, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                      session.type === "shadowing"
-                        ? "bg-yellow-500/10"
-                        : session.type === "dictation"
-                        ? "bg-blue-500/10"
-                        : session.type === "flashcard"
-                        ? "bg-green-500/10"
-                        : "bg-purple-500/10"
-                    }`}
-                  >
-                    {session.type === "shadowing" ? (
-                      <Mic
-                        className={`w-4 h-4 ${
-                          session.type === "shadowing"
-                            ? "text-yellow-500"
-                            : ""
-                        }`}
-                      />
-                    ) : session.type === "dictation" ? (
+      {/* Recent Sessions - Show recent dictation scores */}
+      {dictationStats && dictationStats.recentScores.length > 0 && (
+        <div>
+          <h2 className="text-lg font-heading font-semibold text-neutral-200 mb-4">
+            Recent Dictation Scores
+          </h2>
+          <Card>
+            <CardContent className="divide-y divide-neutral-700">
+              {dictationStats.recentScores.slice(0, 5).map((score, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-500/10">
                       <PenTool className="w-4 h-4 text-blue-500" />
-                    ) : session.type === "flashcard" ? (
-                      <Layers className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <PenTool className="w-4 h-4 text-purple-500" />
-                    )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-neutral-200">
+                        Dictation Practice
+                      </p>
+                      <p className="text-xs text-neutral-400">
+                        Session {index + 1}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-neutral-200 capitalize">
-                      {session.type.replace("-", " ")}
-                    </p>
-                    <p className="text-xs text-neutral-400">{session.date}</p>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-neutral-200">
+                        {score}%
+                      </p>
+                    </div>
+                    <Badge
+                      variant={
+                        score >= 85 ? "green" : score >= 70 ? "yellow" : "red"
+                      }
+                    >
+                      {score >= 85 ? "A" : score >= 70 ? "B" : "C"}
+                    </Badge>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-neutral-200">
-                      {session.score}%
-                    </p>
-                    <p className="text-xs text-neutral-400">
-                      {session.duration} min
-                    </p>
-                  </div>
-                  <Badge
-                    variant={
-                      session.score >= 85
-                        ? "green"
-                        : session.score >= 70
-                        ? "yellow"
-                        : "red"
-                    }
-                  >
-                    {session.score >= 85
-                      ? "A"
-                      : session.score >= 70
-                      ? "B"
-                      : "C"}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

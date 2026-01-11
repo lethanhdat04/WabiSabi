@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Montserrat_Alternates, Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
+import { Providers } from "./providers";
 
 const montserrat = Montserrat_Alternates({
   subsets: ["latin"],
@@ -26,7 +27,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${montserrat.variable} ${vietnam.variable}`}>
-      <body className="min-h-screen antialiased">{children}</body>
+      <body className="min-h-screen antialiased">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

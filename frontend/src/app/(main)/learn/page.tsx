@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   BookOpen,
@@ -20,18 +21,65 @@ import {
   Button,
   Badge,
   Progress,
+  LoadingPage,
+  ErrorPage,
 } from "@/components/ui";
+import { useAuth } from "@/lib/auth-context";
 import {
-  mockDecks,
-  mockVideos,
-  mockPracticeStats,
-  formatDuration,
-  getLevelColor,
-} from "@/lib/mock-data";
+  deckApi,
+  videoApi,
+  practiceApi,
+  VocabularyDeck,
+  Video as VideoType,
+  ProgressStats,
+} from "@/lib/api-client";
+import { formatDuration, getLevelColor } from "@/lib/hooks";
 
 export default function LearnPage() {
-  const recentDecks = mockDecks.slice(0, 3);
-  const recentVideos = mockVideos.slice(0, 2);
+  const { user } = useAuth();
+  const [recentDecks, setRecentDecks] = useState<VocabularyDeck[]>([]);
+  const [recentVideos, setRecentVideos] = useState<VideoType[]>([]);
+  const [stats, setStats] = useState<ProgressStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [decksRes, videosRes, statsRes] = await Promise.all([
+          practiceApi.getRecentDecks().catch(() => []),
+          videoApi.getAll({ size: 2 }).catch(() => ({ content: [] })),
+          practiceApi.getVocabularyStats().catch(() => null),
+        ]);
+
+        setRecentDecks(decksRes.slice(0, 3));
+        setRecentVideos(videosRes.content || []);
+        setStats(statsRes);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load data");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  if (isLoading) {
+    return <LoadingPage message="Loading your dashboard..." />;
+  }
+
+  if (error) {
+    return <ErrorPage title="Error loading dashboard" message={error} />;
+  }
+
+  const totalMastered = stats?.itemsMastered || 0;
+  const streak = user?.progress?.streak || 0;
+  const totalTime = user?.progress?.totalPracticeMinutes || 0;
+  const totalSessions = stats?.totalAttempts || 0;
+  const todayCompleted = stats?.totalItemsPracticed || 0;
+  const todayGoal = user?.preferences?.dailyGoalMinutes || 30;
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -53,7 +101,7 @@ export default function LearnPage() {
             </div>
             <div>
               <p className="text-2xl font-heading font-semibold text-neutral-200">
-                {mockPracticeStats.streak}
+                {streak}
               </p>
               <p className="text-sm text-neutral-400">Day Streak</p>
             </div>
@@ -67,8 +115,7 @@ export default function LearnPage() {
             </div>
             <div>
               <p className="text-2xl font-heading font-semibold text-neutral-200">
-                {mockPracticeStats.masteryByLevel.N5.mastered +
-                  mockPracticeStats.masteryByLevel.N4.mastered}
+                {totalMastered}
               </p>
               <p className="text-sm text-neutral-400">Words Mastered</p>
             </div>
@@ -82,7 +129,7 @@ export default function LearnPage() {
             </div>
             <div>
               <p className="text-2xl font-heading font-semibold text-neutral-200">
-                {Math.round(mockPracticeStats.totalTime / 60)}h
+                {Math.round(totalTime / 60)}h
               </p>
               <p className="text-sm text-neutral-400">Study Time</p>
             </div>
@@ -96,7 +143,7 @@ export default function LearnPage() {
             </div>
             <div>
               <p className="text-2xl font-heading font-semibold text-neutral-200">
-                {mockPracticeStats.totalSessions}
+                {totalSessions}
               </p>
               <p className="text-sm text-neutral-400">Sessions</p>
             </div>
@@ -113,8 +160,7 @@ export default function LearnPage() {
                 Today&apos;s Progress
               </h3>
               <p className="text-sm text-neutral-400">
-                {mockPracticeStats.todayProgress.completed} of{" "}
-                {mockPracticeStats.todayProgress.goal} sessions completed
+                {todayCompleted} of {todayGoal} items practiced
               </p>
             </div>
             <Link href="/practice">
@@ -122,11 +168,7 @@ export default function LearnPage() {
             </Link>
           </div>
           <Progress
-            value={
-              (mockPracticeStats.todayProgress.completed /
-                mockPracticeStats.todayProgress.goal) *
-              100
-            }
+            value={Math.min((todayCompleted / todayGoal) * 100, 100)}
             size="md"
           />
         </CardContent>
@@ -134,7 +176,7 @@ export default function LearnPage() {
 
       {/* Quick Access */}
       <div className="grid md:grid-cols-2 gap-4">
-        <Link href="/learn/vocabulary">
+        <Link href="/decks">
           <Card variant="interactive" className="h-full">
             <CardContent className="flex items-center gap-4">
               <div className="w-12 h-12 bg-yellow-500/10 rounded-xl flex items-center justify-center">
@@ -145,7 +187,7 @@ export default function LearnPage() {
                   Vocabulary Decks
                 </h3>
                 <p className="text-sm text-neutral-400">
-                  {mockDecks.length} decks available
+                  Browse and study decks
                 </p>
               </div>
               <ChevronRight className="w-5 h-5 text-neutral-400" />
@@ -164,7 +206,7 @@ export default function LearnPage() {
                   Video Library
                 </h3>
                 <p className="text-sm text-neutral-400">
-                  {mockVideos.length} videos to practice
+                  Practice with videos
                 </p>
               </div>
               <ChevronRight className="w-5 h-5 text-neutral-400" />
@@ -174,113 +216,130 @@ export default function LearnPage() {
       </div>
 
       {/* Continue Learning */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-heading font-semibold text-neutral-200">
-            Continue Learning
-          </h2>
-          <Link
-            href="/learn/vocabulary"
-            className="text-sm text-yellow-500 hover:underline"
-          >
-            View all
-          </Link>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-4">
-          {recentDecks.map((deck) => (
-            <Link key={deck.id} href={`/learn/vocabulary/${deck.id}`}>
-              <Card variant="interactive" className="h-full">
-                <CardHeader>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant={getLevelColor(deck.level) as any}>
-                      {deck.level}
-                    </Badge>
-                    {deck.isOfficial && (
-                      <Badge variant="yellow">Official</Badge>
-                    )}
-                  </div>
-                  <CardTitle className="line-clamp-1">{deck.title}</CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    {deck.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between text-sm text-neutral-400 mb-2">
-                    <span>{deck.totalVocabulary} words</span>
-                    <span>{deck.progress}% complete</span>
-                  </div>
-                  <Progress value={deck.progress} size="sm" />
-                </CardContent>
-              </Card>
+      {recentDecks.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-heading font-semibold text-neutral-200">
+              Continue Learning
+            </h2>
+            <Link
+              href="/decks"
+              className="text-sm text-yellow-500 hover:underline"
+            >
+              View all
             </Link>
-          ))}
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4">
+            {recentDecks.map((deck) => (
+              <Link key={deck.id} href={`/decks/${deck.id}`}>
+                <Card variant="interactive" className="h-full">
+                  <CardHeader>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant={getLevelColor(deck.level) as any}>
+                        {deck.level}
+                      </Badge>
+                      {deck.isOfficial && (
+                        <Badge variant="yellow">Official</Badge>
+                      )}
+                    </div>
+                    <CardTitle className="line-clamp-1">{deck.title}</CardTitle>
+                    <CardDescription className="line-clamp-2">
+                      {deck.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between text-sm text-neutral-400 mb-2">
+                      <span>
+                        {deck.sections?.reduce(
+                          (acc, s) => acc + (s.items?.length || 0),
+                          0
+                        ) || 0}{" "}
+                        words
+                      </span>
+                      <span>
+                        {Math.round(deck.stats?.completionRate || 0)}% complete
+                      </span>
+                    </div>
+                    <Progress
+                      value={deck.stats?.completionRate || 0}
+                      size="sm"
+                    />
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Recent Videos */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-heading font-semibold text-neutral-200">
-            Recent Videos
-          </h2>
-          <Link
-            href="/learn/videos"
-            className="text-sm text-yellow-500 hover:underline"
-          >
-            View all
-          </Link>
-        </div>
+      {recentVideos.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-heading font-semibold text-neutral-200">
+              Recent Videos
+            </h2>
+            <Link
+              href="/learn/videos"
+              className="text-sm text-yellow-500 hover:underline"
+            >
+              View all
+            </Link>
+          </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
-          {recentVideos.map((video) => (
-            <Link key={video.id} href={`/learn/videos/${video.id}`}>
-              <Card variant="interactive" className="h-full">
-                <CardContent className="flex gap-4">
-                  <div className="relative w-32 h-20 bg-neutral-700 rounded-lg overflow-hidden flex-shrink-0">
-                    <img
-                      src={video.thumbnailUrl}
-                      alt={video.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                      <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
-                        <Play className="w-4 h-4 text-neutral-900 ml-0.5" />
+          <div className="grid md:grid-cols-2 gap-4">
+            {recentVideos.map((video) => (
+              <Link key={video.id} href={`/learn/videos/${video.id}`}>
+                <Card variant="interactive" className="h-full">
+                  <CardContent className="flex gap-4">
+                    <div className="relative w-32 h-20 bg-neutral-700 rounded-lg overflow-hidden flex-shrink-0">
+                      <img
+                        src={video.thumbnailUrl}
+                        alt={video.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                        <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
+                          <Play className="w-4 h-4 text-neutral-900 ml-0.5" />
+                        </div>
+                      </div>
+                      <span className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/70 text-xs text-neutral-200 rounded">
+                        {formatDuration(video.duration)}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant={getLevelColor(video.level) as any}>
+                          {video.level}
+                        </Badge>
+                        <span className="text-xs text-neutral-400">
+                          {video.subtitles?.length || 0} segments
+                        </span>
+                      </div>
+                      <h3 className="font-medium text-neutral-200 line-clamp-1">
+                        {video.title}
+                      </h3>
+                      <p className="text-sm text-neutral-400 line-clamp-1">
+                        {video.titleJapanese}
+                      </p>
+                      <div className="flex items-center gap-3 mt-2 text-xs text-neutral-400">
+                        <span>
+                          {video.stats?.viewCount?.toLocaleString() || 0} views
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Star className="w-3 h-3 text-yellow-500" />
+                          {video.stats?.averageRating?.toFixed(1) || "0.0"}
+                        </span>
                       </div>
                     </div>
-                    <span className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/70 text-xs text-neutral-200 rounded">
-                      {formatDuration(video.duration)}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant={getLevelColor(video.level) as any}>
-                        {video.level}
-                      </Badge>
-                      <span className="text-xs text-neutral-400">
-                        {video.segmentCount} segments
-                      </span>
-                    </div>
-                    <h3 className="font-medium text-neutral-200 line-clamp-1">
-                      {video.title}
-                    </h3>
-                    <p className="text-sm text-neutral-400 line-clamp-1">
-                      {video.titleJapanese}
-                    </p>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-neutral-400">
-                      <span>{video.stats.viewCount.toLocaleString()} views</span>
-                      <span className="flex items-center gap-1">
-                        <Star className="w-3 h-3 text-yellow-500" />
-                        {video.stats.averageRating}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

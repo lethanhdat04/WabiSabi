@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -24,111 +24,67 @@ import {
   Button,
   Badge,
   Progress,
+  LoadingPage,
+  ErrorPage,
 } from "@/components/ui";
-
-const mockDeckDetail = {
-  id: "d1",
-  name: "JLPT N5 Vocabulary",
-  description:
-    "Essential vocabulary for JLPT N5 exam preparation. This deck covers all the words you need to know to pass the N5 level of the Japanese Language Proficiency Test.",
-  cardCount: 800,
-  learnedCount: 320,
-  masteredCount: 180,
-  level: "N5",
-  isPublic: true,
-  author: "Nihongo Master",
-  createdAt: "2024-01-01",
-  lastStudied: "2024-01-14",
-  estimatedTime: "40 hours",
-  sections: [
-    {
-      id: "s1",
-      name: "Greetings & Common Phrases",
-      description: "Basic greetings and everyday expressions",
-      cardCount: 50,
-      learnedCount: 45,
-      words: [
-        { japanese: "おはよう", reading: "ohayou", meaning: "Good morning (casual)" },
-        { japanese: "こんにちは", reading: "konnichiwa", meaning: "Hello / Good afternoon" },
-        { japanese: "こんばんは", reading: "konbanwa", meaning: "Good evening" },
-        { japanese: "さようなら", reading: "sayounara", meaning: "Goodbye" },
-        { japanese: "ありがとう", reading: "arigatou", meaning: "Thank you" },
-      ],
-    },
-    {
-      id: "s2",
-      name: "Numbers & Counting",
-      description: "Numbers, counters, and counting systems",
-      cardCount: 80,
-      learnedCount: 60,
-      words: [
-        { japanese: "一", reading: "ichi", meaning: "One" },
-        { japanese: "二", reading: "ni", meaning: "Two" },
-        { japanese: "三", reading: "san", meaning: "Three" },
-        { japanese: "百", reading: "hyaku", meaning: "Hundred" },
-        { japanese: "千", reading: "sen", meaning: "Thousand" },
-      ],
-    },
-    {
-      id: "s3",
-      name: "Time & Dates",
-      description: "Days, months, and time expressions",
-      cardCount: 70,
-      learnedCount: 50,
-      words: [
-        { japanese: "今日", reading: "kyou", meaning: "Today" },
-        { japanese: "明日", reading: "ashita", meaning: "Tomorrow" },
-        { japanese: "昨日", reading: "kinou", meaning: "Yesterday" },
-        { japanese: "月曜日", reading: "getsuyoubi", meaning: "Monday" },
-        { japanese: "一月", reading: "ichigatsu", meaning: "January" },
-      ],
-    },
-    {
-      id: "s4",
-      name: "Basic Verbs",
-      description: "Common verbs in dictionary form",
-      cardCount: 100,
-      learnedCount: 45,
-      words: [
-        { japanese: "食べる", reading: "taberu", meaning: "To eat" },
-        { japanese: "飲む", reading: "nomu", meaning: "To drink" },
-        { japanese: "行く", reading: "iku", meaning: "To go" },
-        { japanese: "来る", reading: "kuru", meaning: "To come" },
-        { japanese: "する", reading: "suru", meaning: "To do" },
-      ],
-    },
-    {
-      id: "s5",
-      name: "Adjectives",
-      description: "い-adjectives and な-adjectives",
-      cardCount: 80,
-      learnedCount: 40,
-      words: [
-        { japanese: "大きい", reading: "ookii", meaning: "Big" },
-        { japanese: "小さい", reading: "chiisai", meaning: "Small" },
-        { japanese: "新しい", reading: "atarashii", meaning: "New" },
-        { japanese: "古い", reading: "furui", meaning: "Old" },
-        { japanese: "きれい", reading: "kirei", meaning: "Beautiful / Clean" },
-      ],
-    },
-  ],
-};
+import { deckApi, VocabularyDeck, DeckProgress } from "@/lib/api-client";
+import { getLevelColor } from "@/lib/hooks";
 
 export default function DeckDetailPage() {
   const params = useParams();
-  const deck = mockDeckDetail;
-  const [expandedSections, setExpandedSections] = useState<string[]>(["s1"]);
+  const deckId = params.deckId as string;
+  const [deck, setDeck] = useState<VocabularyDeck | null>(null);
+  const [progress, setProgress] = useState<DeckProgress | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [expandedSections, setExpandedSections] = useState<number[]>([0]);
 
-  const toggleSection = (sectionId: string) => {
+  useEffect(() => {
+    async function fetchDeck() {
+      if (!deckId) return;
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [deckData, progressData] = await Promise.all([
+          deckApi.getById(deckId),
+          deckApi.getProgress(deckId).catch(() => null),
+        ]);
+        setDeck(deckData);
+        setProgress(progressData);
+        if (deckData.sections?.length > 0) {
+          setExpandedSections([0]);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load deck");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchDeck();
+  }, [deckId]);
+
+  const toggleSection = (sectionIndex: number) => {
     setExpandedSections((prev) =>
-      prev.includes(sectionId)
-        ? prev.filter((id) => id !== sectionId)
-        : [...prev, sectionId]
+      prev.includes(sectionIndex)
+        ? prev.filter((idx) => idx !== sectionIndex)
+        : [...prev, sectionIndex]
     );
   };
 
-  const overallProgress = Math.round((deck.learnedCount / deck.cardCount) * 100);
-  const masteryProgress = Math.round((deck.masteredCount / deck.cardCount) * 100);
+  if (isLoading) {
+    return <LoadingPage message="Loading deck..." />;
+  }
+
+  if (error || !deck) {
+    return <ErrorPage title="Error loading deck" message={error || "Deck not found"} />;
+  }
+
+  const totalCards =
+    deck.sections?.reduce((acc, s) => acc + (s.items?.length || 0), 0) || 0;
+  const learnedCount = progress?.overallStats?.totalItemsPracticed || 0;
+  const masteredCount = progress?.overallStats?.itemsMastered || 0;
+  const overallProgress = totalCards > 0 ? Math.round((learnedCount / totalCards) * 100) : 0;
+  const masteryProgress = totalCards > 0 ? Math.round((masteredCount / totalCards) * 100) : 0;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -157,7 +113,7 @@ export default function DeckDetailPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
                 <h1 className="text-2xl font-heading font-semibold text-neutral-200">
-                  {deck.name}
+                  {deck.title}
                 </h1>
                 {deck.isPublic ? (
                   <Globe className="w-5 h-5 text-neutral-400" />
@@ -167,12 +123,9 @@ export default function DeckDetailPage() {
               </div>
               <p className="text-neutral-400 mb-4">{deck.description}</p>
               <div className="flex flex-wrap items-center gap-4 text-sm text-neutral-400">
-                <Badge variant="yellow">{deck.level}</Badge>
-                <span>by {deck.author}</span>
-                <span className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  {deck.estimatedTime}
-                </span>
+                <Badge variant={getLevelColor(deck.level) as any}>{deck.level}</Badge>
+                <span>{deck.isOfficial ? "Official" : "Community"}</span>
+                {deck.topic && <span>{deck.topic}</span>}
               </div>
             </div>
           </div>
@@ -187,7 +140,7 @@ export default function DeckDetailPage() {
               <BookOpen className="w-6 h-6 text-blue-500" />
             </div>
             <p className="text-2xl font-heading font-semibold text-neutral-200">
-              {deck.cardCount}
+              {totalCards}
             </p>
             <p className="text-sm text-neutral-400">Total Cards</p>
           </CardContent>
@@ -199,7 +152,7 @@ export default function DeckDetailPage() {
               <Target className="w-6 h-6 text-green-500" />
             </div>
             <p className="text-2xl font-heading font-semibold text-neutral-200">
-              {deck.learnedCount}
+              {learnedCount}
             </p>
             <p className="text-sm text-neutral-400">Learned</p>
           </CardContent>
@@ -211,7 +164,7 @@ export default function DeckDetailPage() {
               <Layers className="w-6 h-6 text-yellow-500" />
             </div>
             <p className="text-2xl font-heading font-semibold text-neutral-200">
-              {deck.masteredCount}
+              {masteredCount}
             </p>
             <p className="text-sm text-neutral-400">Mastered</p>
           </CardContent>
@@ -255,90 +208,95 @@ export default function DeckDetailPage() {
       </div>
 
       {/* Sections */}
-      <div>
-        <h2 className="text-lg font-heading font-semibold text-neutral-200 mb-4">
-          Sections ({deck.sections.length})
-        </h2>
-        <div className="space-y-3">
-          {deck.sections.map((section) => {
-            const isExpanded = expandedSections.includes(section.id);
-            const sectionProgress = Math.round(
-              (section.learnedCount / section.cardCount) * 100
-            );
+      {deck.sections && deck.sections.length > 0 && (
+        <div>
+          <h2 className="text-lg font-heading font-semibold text-neutral-200 mb-4">
+            Sections ({deck.sections.length})
+          </h2>
+          <div className="space-y-3">
+            {deck.sections.map((section, sectionIndex) => {
+              const isExpanded = expandedSections.includes(sectionIndex);
+              const sectionCardCount = section.items?.length || 0;
+              const sectionProgress = progress?.itemProgress
+                ? Object.values(progress.itemProgress).filter(
+                    (p) => p.sectionIndex === sectionIndex && p.masteryLevel !== "NEW"
+                  ).length
+                : 0;
+              const sectionProgressPercent =
+                sectionCardCount > 0
+                  ? Math.round((sectionProgress / sectionCardCount) * 100)
+                  : 0;
 
-            return (
-              <Card key={section.id}>
-                <CardContent className="p-0">
-                  <button
-                    onClick={() => toggleSection(section.id)}
-                    className="w-full p-4 flex items-center justify-between text-left"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-1">
-                        <h3 className="font-heading font-semibold text-neutral-200">
-                          {section.name}
-                        </h3>
-                        <Badge variant="default">
-                          {section.cardCount} cards
-                        </Badge>
+              return (
+                <Card key={sectionIndex}>
+                  <CardContent className="p-0">
+                    <button
+                      onClick={() => toggleSection(sectionIndex)}
+                      className="w-full p-4 flex items-center justify-between text-left"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-1">
+                          <h3 className="font-heading font-semibold text-neutral-200">
+                            {section.title}
+                          </h3>
+                          <Badge variant="default">{sectionCardCount} cards</Badge>
+                        </div>
+                        <p className="text-sm text-neutral-400">{section.description}</p>
+                        <div className="flex items-center gap-4 mt-2">
+                          <Progress
+                            value={sectionProgressPercent}
+                            size="sm"
+                            className="w-32"
+                          />
+                          <span className="text-xs text-neutral-400">
+                            {sectionProgress} / {sectionCardCount} learned
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-sm text-neutral-400">
-                        {section.description}
-                      </p>
-                      <div className="flex items-center gap-4 mt-2">
-                        <Progress
-                          value={sectionProgress}
-                          size="sm"
-                          className="w-32"
-                        />
-                        <span className="text-xs text-neutral-400">
-                          {section.learnedCount} / {section.cardCount} learned
-                        </span>
-                      </div>
-                    </div>
-                    {isExpanded ? (
-                      <ChevronUp className="w-5 h-5 text-neutral-400 flex-shrink-0" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-neutral-400 flex-shrink-0" />
-                    )}
-                  </button>
+                      {isExpanded ? (
+                        <ChevronUp className="w-5 h-5 text-neutral-400 flex-shrink-0" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-neutral-400 flex-shrink-0" />
+                      )}
+                    </button>
 
-                  {isExpanded && (
-                    <div className="border-t border-neutral-700 p-4">
-                      <div className="space-y-2">
-                        {section.words.map((word, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-3 bg-neutral-900 border border-neutral-700 rounded-lg"
-                          >
-                            <div className="flex items-center gap-4">
-                              <button className="w-8 h-8 bg-yellow-500/10 rounded-lg flex items-center justify-center hover:bg-yellow-500/20 transition-colors">
-                                <Volume2 className="w-4 h-4 text-yellow-500" />
-                              </button>
-                              <div>
-                                <p className="font-medium text-neutral-200">
-                                  {word.japanese}
-                                </p>
-                                <p className="text-sm text-neutral-400">
-                                  {word.reading}
-                                </p>
+                    {isExpanded && section.items && section.items.length > 0 && (
+                      <div className="border-t border-neutral-700 p-4">
+                        <div className="space-y-2">
+                          {section.items.slice(0, 5).map((word, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between p-3 bg-neutral-900 border border-neutral-700 rounded-lg"
+                            >
+                              <div className="flex items-center gap-4">
+                                <button className="w-8 h-8 bg-yellow-500/10 rounded-lg flex items-center justify-center hover:bg-yellow-500/20 transition-colors">
+                                  <Volume2 className="w-4 h-4 text-yellow-500" />
+                                </button>
+                                <div>
+                                  <p className="font-medium text-neutral-200">
+                                    {word.japaneseWord}
+                                  </p>
+                                  <p className="text-sm text-neutral-400">{word.reading}</p>
+                                </div>
                               </div>
+                              <p className="text-neutral-400">{word.meaning}</p>
                             </div>
-                            <p className="text-neutral-400">{word.meaning}</p>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
+                        {section.items.length > 5 && (
+                          <p className="text-sm text-neutral-400 text-center mt-4">
+                            Showing 5 of {section.items.length} cards
+                          </p>
+                        )}
                       </div>
-                      <p className="text-sm text-neutral-400 text-center mt-4">
-                        Showing 5 of {section.cardCount} cards
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

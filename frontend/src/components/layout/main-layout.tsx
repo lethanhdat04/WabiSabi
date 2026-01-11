@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Navbar } from "./navbar";
 import { Sidebar } from "./sidebar";
+import { useRequireAuth } from "@/lib/auth-context";
+import { LoadingPage } from "@/components/ui";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -10,6 +12,16 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { isLoading, isAuthenticated } = useRequireAuth();
+
+  // Show loading while checking auth or redirecting
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-neutral-900">
+        <LoadingPage message="Loading..." />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-900">
