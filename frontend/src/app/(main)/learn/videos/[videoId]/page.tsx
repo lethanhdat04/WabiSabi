@@ -454,9 +454,10 @@ export default function VideoPlayerPage() {
   const handleSubtitleClick = (subtitle: SubtitleSegment) => {
     player.seekTo(subtitle.startTime);
     autoStopTriggeredRef.current.delete(subtitle.index);
-    if (player.playerState !== "playing") {
-      player.play();
-    }
+    // if (player.playerState !== "playing") {
+    //   player.play();
+    // }
+    player.play();
   };
 
   // Replay current subtitle
