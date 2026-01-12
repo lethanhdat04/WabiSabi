@@ -74,3 +74,36 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #525252;
 }
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Video player subtitle highlight */
+@keyframes subtitle-highlight {
+  0% {
+    background-color: rgba(234, 179, 8, 0.2);
+  }
+  100% {
+    background-color: rgba(234, 179, 8, 0.1);
+  }
+}
+
+.subtitle-active {
+  animation: subtitle-highlight 0.3s ease-out forwards;
+}
+
+/* Keyboard shortcut key styling */
+kbd {
+  @apply px-2 py-1 bg-neutral-800 border border-neutral-600 rounded text-xs font-mono;
+}
