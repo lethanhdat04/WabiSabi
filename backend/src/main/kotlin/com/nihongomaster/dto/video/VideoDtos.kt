@@ -79,7 +79,28 @@ data class SubtitleSegmentRequest(
     @field:DecimalMin("0.0", message = "End time must be non-negative")
     val endTime: Double,
 
-    val vocabulary: List<String> = emptyList()
+    @field:Valid
+    val vocabulary: List<VocabularyReferenceRequest> = emptyList()
+)
+
+/**
+ * Request DTO for vocabulary reference in a subtitle.
+ */
+data class VocabularyReferenceRequest(
+    @field:NotBlank(message = "Word is required")
+    @field:Size(max = 100, message = "Word must be less than 100 characters")
+    val word: String,
+
+    @field:NotBlank(message = "Reading is required")
+    @field:Size(max = 100, message = "Reading must be less than 100 characters")
+    val reading: String,
+
+    @field:NotBlank(message = "Meaning is required")
+    @field:Size(max = 300, message = "Meaning must be less than 300 characters")
+    val meaning: String,
+
+    @field:Size(max = 50, message = "Part of speech must be less than 50 characters")
+    val partOfSpeech: String? = null
 )
 
 /**
@@ -159,7 +180,17 @@ data class SubtitleSegmentResponse(
     val startTime: Double,
     val endTime: Double,
     val duration: Double,
-    val vocabulary: List<String>
+    val vocabulary: List<VocabularyReferenceResponse>
+)
+
+/**
+ * Vocabulary reference response within a subtitle.
+ */
+data class VocabularyReferenceResponse(
+    val word: String,
+    val reading: String,
+    val meaning: String,
+    val partOfSpeech: String?
 )
 
 /**

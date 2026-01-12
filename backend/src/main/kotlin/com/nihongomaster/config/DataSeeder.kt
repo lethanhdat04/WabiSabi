@@ -137,12 +137,24 @@ class DataSeeder(
                 isOfficial = true,
                 status = VideoStatus.PUBLISHED,
                 subtitles = listOf(
-                    SubtitleSegment(0, "おはようございます", "Ohayou gozaimasu", "Good morning (polite)", 0.0, 3.0, listOf("おはよう")),
-                    SubtitleSegment(1, "こんにちは", "Konnichiwa", "Hello / Good afternoon", 3.5, 6.0, listOf("こんにちは")),
-                    SubtitleSegment(2, "こんばんは", "Konbanwa", "Good evening", 6.5, 9.0, listOf("こんばんは")),
-                    SubtitleSegment(3, "さようなら", "Sayounara", "Goodbye", 9.5, 12.0, listOf("さようなら")),
-                    SubtitleSegment(4, "ありがとうございます", "Arigatou gozaimasu", "Thank you (polite)", 12.5, 16.0, listOf("ありがとう")),
-                    SubtitleSegment(5, "すみません", "Sumimasen", "Excuse me / I'm sorry", 16.5, 19.0, listOf("すみません"))
+                    SubtitleSegment(0, "おはようございます", "Ohayou gozaimasu", "Good morning (polite)", 0.0, 3.0, listOf(
+                        VocabularyReference("おはよう", "おはよう", "Good morning (casual)", "Expression")
+                    )),
+                    SubtitleSegment(1, "こんにちは", "Konnichiwa", "Hello / Good afternoon", 3.5, 6.0, listOf(
+                        VocabularyReference("こんにちは", "こんにちは", "Hello / Good afternoon", "Expression")
+                    )),
+                    SubtitleSegment(2, "こんばんは", "Konbanwa", "Good evening", 6.5, 9.0, listOf(
+                        VocabularyReference("こんばんは", "こんばんは", "Good evening", "Expression")
+                    )),
+                    SubtitleSegment(3, "さようなら", "Sayounara", "Goodbye", 9.5, 12.0, listOf(
+                        VocabularyReference("さようなら", "さようなら", "Goodbye (formal)", "Expression")
+                    )),
+                    SubtitleSegment(4, "ありがとうございます", "Arigatou gozaimasu", "Thank you (polite)", 12.5, 16.0, listOf(
+                        VocabularyReference("ありがとう", "ありがとう", "Thank you (casual)", "Expression")
+                    )),
+                    SubtitleSegment(5, "すみません", "Sumimasen", "Excuse me / I'm sorry", 16.5, 19.0, listOf(
+                        VocabularyReference("すみません", "すみません", "Excuse me / Sorry", "Expression")
+                    ))
                 )
             ),
             Video(
@@ -159,11 +171,23 @@ class DataSeeder(
                 isOfficial = true,
                 status = VideoStatus.PUBLISHED,
                 subtitles = listOf(
-                    SubtitleSegment(0, "いらっしゃいませ", "Irasshaimase", "Welcome (to our store)", 0.0, 3.0, listOf("いらっしゃる")),
-                    SubtitleSegment(1, "メニューをお願いします", "Menyuu o onegai shimasu", "Menu please", 3.5, 7.0, listOf("メニュー", "お願い")),
-                    SubtitleSegment(2, "これをください", "Kore o kudasai", "I'll have this, please", 7.5, 10.0, listOf("これ", "ください")),
-                    SubtitleSegment(3, "お会計をお願いします", "Okaikei o onegai shimasu", "Check please", 10.5, 14.0, listOf("会計")),
-                    SubtitleSegment(4, "ごちそうさまでした", "Gochisousama deshita", "Thank you for the meal", 14.5, 18.0, listOf("ごちそうさま"))
+                    SubtitleSegment(0, "いらっしゃいませ", "Irasshaimase", "Welcome (to our store)", 0.0, 3.0, listOf(
+                        VocabularyReference("いらっしゃる", "いらっしゃる", "To come (honorific)", "Verb")
+                    )),
+                    SubtitleSegment(1, "メニューをお願いします", "Menyuu o onegai shimasu", "Menu please", 3.5, 7.0, listOf(
+                        VocabularyReference("メニュー", "めにゅー", "Menu", "Noun"),
+                        VocabularyReference("お願い", "おねがい", "Request / Please", "Noun")
+                    )),
+                    SubtitleSegment(2, "これをください", "Kore o kudasai", "I'll have this, please", 7.5, 10.0, listOf(
+                        VocabularyReference("これ", "これ", "This", "Pronoun"),
+                        VocabularyReference("ください", "ください", "Please give me", "Expression")
+                    )),
+                    SubtitleSegment(3, "お会計をお願いします", "Okaikei o onegai shimasu", "Check please", 10.5, 14.0, listOf(
+                        VocabularyReference("会計", "かいけい", "Bill / Check", "Noun")
+                    )),
+                    SubtitleSegment(4, "ごちそうさまでした", "Gochisousama deshita", "Thank you for the meal", 14.5, 18.0, listOf(
+                        VocabularyReference("ごちそうさま", "ごちそうさま", "Thank you for the meal", "Expression")
+                    ))
                 )
             ),
             Video(
@@ -180,10 +204,20 @@ class DataSeeder(
                 isOfficial = true,
                 status = VideoStatus.PUBLISHED,
                 subtitles = listOf(
-                    SubtitleSegment(0, "本日はお忙しい中、ありがとうございます", "Honjitsu wa oisogashii naka, arigatou gozaimasu", "Thank you for taking time out of your busy schedule today", 0.0, 5.0, listOf("本日", "忙しい")),
-                    SubtitleSegment(1, "それでは、会議を始めましょう", "Soredewa, kaigi o hajimemashou", "Now then, let's begin the meeting", 5.5, 9.0, listOf("会議", "始める")),
-                    SubtitleSegment(2, "ご質問はありますか", "Go-shitsumon wa arimasu ka", "Do you have any questions?", 9.5, 12.0, listOf("質問")),
-                    SubtitleSegment(3, "確認させてください", "Kakunin sasete kudasai", "Let me confirm", 12.5, 15.0, listOf("確認"))
+                    SubtitleSegment(0, "本日はお忙しい中、ありがとうございます", "Honjitsu wa oisogashii naka, arigatou gozaimasu", "Thank you for taking time out of your busy schedule today", 0.0, 5.0, listOf(
+                        VocabularyReference("本日", "ほんじつ", "Today (formal)", "Noun"),
+                        VocabularyReference("忙しい", "いそがしい", "Busy", "i-Adjective")
+                    )),
+                    SubtitleSegment(1, "それでは、会議を始めましょう", "Soredewa, kaigi o hajimemashou", "Now then, let's begin the meeting", 5.5, 9.0, listOf(
+                        VocabularyReference("会議", "かいぎ", "Meeting", "Noun"),
+                        VocabularyReference("始める", "はじめる", "To begin", "Verb")
+                    )),
+                    SubtitleSegment(2, "ご質問はありますか", "Go-shitsumon wa arimasu ka", "Do you have any questions?", 9.5, 12.0, listOf(
+                        VocabularyReference("質問", "しつもん", "Question", "Noun")
+                    )),
+                    SubtitleSegment(3, "確認させてください", "Kakunin sasete kudasai", "Let me confirm", 12.5, 15.0, listOf(
+                        VocabularyReference("確認", "かくにん", "Confirmation", "Noun")
+                    ))
                 )
             ),
             Video(
@@ -200,11 +234,21 @@ class DataSeeder(
                 isOfficial = true,
                 status = VideoStatus.PUBLISHED,
                 subtitles = listOf(
-                    SubtitleSegment(0, "すごい！", "Sugoi!", "Amazing!", 0.0, 2.0, listOf("すごい")),
-                    SubtitleSegment(1, "やばい！", "Yabai!", "Awesome! / Oh no!", 2.5, 4.5, listOf("やばい")),
-                    SubtitleSegment(2, "まじで？", "Maji de?", "Seriously?", 5.0, 7.0, listOf("まじ")),
-                    SubtitleSegment(3, "なるほど", "Naruhodo", "I see / That makes sense", 7.5, 9.5, listOf("なるほど")),
-                    SubtitleSegment(4, "頑張って！", "Ganbatte!", "Good luck! / Do your best!", 10.0, 12.5, listOf("頑張る"))
+                    SubtitleSegment(0, "すごい！", "Sugoi!", "Amazing!", 0.0, 2.0, listOf(
+                        VocabularyReference("すごい", "すごい", "Amazing / Incredible", "i-Adjective")
+                    )),
+                    SubtitleSegment(1, "やばい！", "Yabai!", "Awesome! / Oh no!", 2.5, 4.5, listOf(
+                        VocabularyReference("やばい", "やばい", "Awesome / Dangerous (slang)", "i-Adjective")
+                    )),
+                    SubtitleSegment(2, "まじで？", "Maji de?", "Seriously?", 5.0, 7.0, listOf(
+                        VocabularyReference("まじ", "まじ", "Seriously / For real", "Expression")
+                    )),
+                    SubtitleSegment(3, "なるほど", "Naruhodo", "I see / That makes sense", 7.5, 9.5, listOf(
+                        VocabularyReference("なるほど", "なるほど", "I see / That makes sense", "Expression")
+                    )),
+                    SubtitleSegment(4, "頑張って！", "Ganbatte!", "Good luck! / Do your best!", 10.0, 12.5, listOf(
+                        VocabularyReference("頑張る", "がんばる", "To do one's best", "Verb")
+                    ))
                 )
             ),
             Video(
@@ -221,9 +265,19 @@ class DataSeeder(
                 isOfficial = true,
                 status = VideoStatus.PUBLISHED,
                 subtitles = listOf(
-                    SubtitleSegment(0, "今日のニュースです", "Kyou no nyuusu desu", "Here is today's news", 0.0, 3.0, listOf("今日", "ニュース")),
-                    SubtitleSegment(1, "東京では桜が満開です", "Tokyo dewa sakura ga mankai desu", "In Tokyo, the cherry blossoms are in full bloom", 3.5, 7.0, listOf("東京", "桜", "満開")),
-                    SubtitleSegment(2, "多くの人が花見を楽しんでいます", "Ooku no hito ga hanami o tanoshinde imasu", "Many people are enjoying flower viewing", 7.5, 12.0, listOf("花見", "楽しむ"))
+                    SubtitleSegment(0, "今日のニュースです", "Kyou no nyuusu desu", "Here is today's news", 0.0, 3.0, listOf(
+                        VocabularyReference("今日", "きょう", "Today", "Noun"),
+                        VocabularyReference("ニュース", "にゅーす", "News", "Noun")
+                    )),
+                    SubtitleSegment(1, "東京では桜が満開です", "Tokyo dewa sakura ga mankai desu", "In Tokyo, the cherry blossoms are in full bloom", 3.5, 7.0, listOf(
+                        VocabularyReference("東京", "とうきょう", "Tokyo", "Proper Noun"),
+                        VocabularyReference("桜", "さくら", "Cherry blossom", "Noun"),
+                        VocabularyReference("満開", "まんかい", "Full bloom", "Noun")
+                    )),
+                    SubtitleSegment(2, "多くの人が花見を楽しんでいます", "Ooku no hito ga hanami o tanoshinde imasu", "Many people are enjoying flower viewing", 7.5, 12.0, listOf(
+                        VocabularyReference("花見", "はなみ", "Flower viewing", "Noun"),
+                        VocabularyReference("楽しむ", "たのしむ", "To enjoy", "Verb")
+                    ))
                 )
             )
         )

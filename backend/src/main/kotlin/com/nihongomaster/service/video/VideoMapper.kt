@@ -3,6 +3,7 @@ package com.nihongomaster.service.video
 import com.nihongomaster.domain.video.SubtitleSegment
 import com.nihongomaster.domain.video.Video
 import com.nihongomaster.domain.video.VideoStats
+import com.nihongomaster.domain.video.VocabularyReference
 import com.nihongomaster.dto.video.*
 import org.springframework.stereotype.Component
 
@@ -69,7 +70,19 @@ class VideoMapper {
             startTime = segment.startTime,
             endTime = segment.endTime,
             duration = segment.getDuration(),
-            vocabulary = segment.vocabulary
+            vocabulary = segment.vocabulary.map { toVocabularyResponse(it) }
+        )
+    }
+
+    /**
+     * Convert VocabularyReference to response DTO.
+     */
+    fun toVocabularyResponse(vocab: VocabularyReference): VocabularyReferenceResponse {
+        return VocabularyReferenceResponse(
+            word = vocab.word,
+            reading = vocab.reading,
+            meaning = vocab.meaning,
+            partOfSpeech = vocab.partOfSpeech
         )
     }
 
@@ -119,7 +132,19 @@ class VideoMapper {
             meaning = request.meaning.trim(),
             startTime = request.startTime,
             endTime = request.endTime,
-            vocabulary = request.vocabulary.map { it.trim() }
+            vocabulary = request.vocabulary.map { toVocabularyEntity(it) }
+        )
+    }
+
+    /**
+     * Convert VocabularyReferenceRequest to VocabularyReference entity.
+     */
+    fun toVocabularyEntity(request: VocabularyReferenceRequest): VocabularyReference {
+        return VocabularyReference(
+            word = request.word.trim(),
+            reading = request.reading.trim(),
+            meaning = request.meaning.trim(),
+            partOfSpeech = request.partOfSpeech?.trim()
         )
     }
 }

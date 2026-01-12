@@ -276,6 +276,7 @@ export interface SubtitleSegment {
   meaning: string;
   startTime: number;
   endTime: number;
+  duration?: number;
   vocabulary: VocabularyReference[];
 }
 
@@ -283,6 +284,7 @@ export interface VocabularyReference {
   word: string;
   reading: string;
   meaning: string;
+  partOfSpeech?: string;
 }
 
 export interface VideoStats {

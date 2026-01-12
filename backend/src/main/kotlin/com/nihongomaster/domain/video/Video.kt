@@ -87,7 +87,7 @@ data class SubtitleSegment(
     val meaning: String,                 // Vietnamese/English translation
     val startTime: Double,               // Start time in seconds (e.g., 0.5)
     val endTime: Double,                 // End time in seconds (e.g., 3.2)
-    val vocabulary: List<String> = emptyList()  // Key vocabulary words
+    val vocabulary: List<VocabularyReference> = emptyList()  // Key vocabulary words with details
 ) {
     /**
      * Get duration of this segment in seconds.
@@ -99,6 +99,17 @@ data class SubtitleSegment(
      */
     fun getCharacterCount(): Int = japaneseText.length
 }
+
+/**
+ * Vocabulary reference within a subtitle segment.
+ * Contains word details for learning purposes.
+ */
+data class VocabularyReference(
+    val word: String,                    // Japanese word (e.g., "おはよう")
+    val reading: String,                 // Hiragana/katakana reading (e.g., "おはよう")
+    val meaning: String,                 // English/Vietnamese meaning
+    val partOfSpeech: String? = null     // Part of speech (e.g., "Expression", "Verb", "Noun")
+)
 
 /**
  * Video statistics for tracking engagement.

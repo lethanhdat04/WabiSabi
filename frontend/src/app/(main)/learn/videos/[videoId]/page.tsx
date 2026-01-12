@@ -22,295 +22,34 @@ import {
   Clock,
   Star,
   Eye,
+  Loader2,
+  Video,
 } from "lucide-react";
-import { Card, CardContent, Button, Badge } from "@/components/ui";
+import {
+  Card,
+  CardContent,
+  Button,
+  Badge,
+  LoadingSpinner,
+} from "@/components/ui";
 import { useYouTubePlayer, PlayerState } from "@/lib/use-youtube-player";
 import { formatDuration, getLevelColor } from "@/lib/mock-data";
+import { videoApi, Video as VideoType, VocabularyReference } from "@/lib/api-client";
 import { clsx } from "clsx";
 
-// Extended subtitle segment with vocabulary
-interface VocabularyWord {
-  word: string;
-  reading: string;
-  meaning: string;
-  partOfSpeech?: string;
-}
+// Local type aliases for convenience
+type VocabularyWord = VocabularyReference;
 
 interface SubtitleSegment {
   index: number;
   japaneseText: string;
-  romaji: string;
+  romaji?: string;
   meaning: string;
   startTime: number;
   endTime: number;
+  duration?: number;
   vocabulary?: VocabularyWord[];
 }
-
-interface VideoData {
-  id: string;
-  title: string;
-  titleJapanese: string;
-  description: string;
-  youtubeId: string;
-  thumbnailUrl: string;
-  duration: number;
-  category: string;
-  level: string;
-  tags: string[];
-  subtitles: SubtitleSegment[];
-  isOfficial: boolean;
-  stats: {
-    viewCount: number;
-    practiceCount: number;
-    shadowingCount: number;
-    dictationCount: number;
-    averageRating: number;
-    totalRatings: number;
-  };
-}
-
-// Mock video data with full subtitles
-const mockVideoDetail: VideoData = {
-  id: "1",
-  title: "Daily Greetings in Japanese",
-  titleJapanese: "日本語の挨拶",
-  description:
-    "Learn essential Japanese greetings used in everyday conversation. Perfect for beginners!",
-  youtubeId: "UUtCLFtlytU", // A sample Japanese learning video
-  thumbnailUrl:
-    "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=800&h=450&fit=crop",
-  duration: 180,
-  category: "DAILY_LIFE",
-  level: "N5",
-  tags: ["greetings", "basics", "conversation"],
-  isOfficial: true,
-  stats: {
-    viewCount: 1250,
-    practiceCount: 340,
-    shadowingCount: 215,
-    dictationCount: 125,
-    averageRating: 4.5,
-    totalRatings: 89,
-  },
-  subtitles: [
-    {
-      index: 0,
-      japaneseText: "おはようございます",
-      romaji: "Ohayou gozaimasu",
-      meaning: "Good morning (polite)",
-      startTime: 0,
-      endTime: 3,
-      vocabulary: [
-        {
-          word: "おはよう",
-          reading: "ohayou",
-          meaning: "Good morning (casual)",
-          partOfSpeech: "Expression",
-        },
-        {
-          word: "ございます",
-          reading: "gozaimasu",
-          meaning: "Polite form of existence verb",
-          partOfSpeech: "Auxiliary verb",
-        },
-      ],
-    },
-    {
-      index: 1,
-      japaneseText: "こんにちは",
-      romaji: "Konnichiwa",
-      meaning: "Hello / Good afternoon",
-      startTime: 3,
-      endTime: 6,
-      vocabulary: [
-        {
-          word: "今日",
-          reading: "こんにち",
-          meaning: "Today / This day",
-          partOfSpeech: "Noun",
-        },
-      ],
-    },
-    {
-      index: 2,
-      japaneseText: "こんばんは",
-      romaji: "Konbanwa",
-      meaning: "Good evening",
-      startTime: 6,
-      endTime: 9,
-      vocabulary: [
-        {
-          word: "今晩",
-          reading: "こんばん",
-          meaning: "This evening / Tonight",
-          partOfSpeech: "Noun",
-        },
-      ],
-    },
-    {
-      index: 3,
-      japaneseText: "お元気ですか",
-      romaji: "Ogenki desu ka",
-      meaning: "How are you?",
-      startTime: 9,
-      endTime: 12,
-      vocabulary: [
-        {
-          word: "元気",
-          reading: "げんき",
-          meaning: "Healthy / Energetic / Well",
-          partOfSpeech: "Na-adjective",
-        },
-        {
-          word: "です",
-          reading: "desu",
-          meaning: "Polite copula (is/am/are)",
-          partOfSpeech: "Auxiliary verb",
-        },
-        {
-          word: "か",
-          reading: "ka",
-          meaning: "Question particle",
-          partOfSpeech: "Particle",
-        },
-      ],
-    },
-    {
-      index: 4,
-      japaneseText: "はい、元気です",
-      romaji: "Hai, genki desu",
-      meaning: "Yes, I'm fine",
-      startTime: 12,
-      endTime: 15,
-      vocabulary: [
-        {
-          word: "はい",
-          reading: "hai",
-          meaning: "Yes",
-          partOfSpeech: "Interjection",
-        },
-      ],
-    },
-    {
-      index: 5,
-      japaneseText: "ありがとうございます",
-      romaji: "Arigatou gozaimasu",
-      meaning: "Thank you (polite)",
-      startTime: 15,
-      endTime: 18,
-      vocabulary: [
-        {
-          word: "ありがとう",
-          reading: "arigatou",
-          meaning: "Thank you (casual)",
-          partOfSpeech: "Expression",
-        },
-      ],
-    },
-    {
-      index: 6,
-      japaneseText: "どういたしまして",
-      romaji: "Dou itashimashite",
-      meaning: "You're welcome",
-      startTime: 18,
-      endTime: 21,
-      vocabulary: [
-        {
-          word: "どういたしまして",
-          reading: "dou itashimashite",
-          meaning: "You're welcome / Don't mention it",
-          partOfSpeech: "Expression",
-        },
-      ],
-    },
-    {
-      index: 7,
-      japaneseText: "すみません",
-      romaji: "Sumimasen",
-      meaning: "Excuse me / I'm sorry",
-      startTime: 21,
-      endTime: 24,
-      vocabulary: [
-        {
-          word: "すみません",
-          reading: "sumimasen",
-          meaning: "Excuse me / Sorry / Thank you",
-          partOfSpeech: "Expression",
-        },
-      ],
-    },
-    {
-      index: 8,
-      japaneseText: "ごめんなさい",
-      romaji: "Gomen nasai",
-      meaning: "I'm sorry (apologetic)",
-      startTime: 24,
-      endTime: 27,
-      vocabulary: [
-        {
-          word: "ごめん",
-          reading: "gomen",
-          meaning: "Sorry (casual)",
-          partOfSpeech: "Expression",
-        },
-      ],
-    },
-    {
-      index: 9,
-      japaneseText: "おやすみなさい",
-      romaji: "Oyasumi nasai",
-      meaning: "Good night",
-      startTime: 27,
-      endTime: 30,
-      vocabulary: [
-        {
-          word: "休む",
-          reading: "やすむ",
-          meaning: "To rest / To take a break",
-          partOfSpeech: "Verb",
-        },
-      ],
-    },
-    {
-      index: 10,
-      japaneseText: "さようなら",
-      romaji: "Sayounara",
-      meaning: "Goodbye (formal)",
-      startTime: 30,
-      endTime: 33,
-      vocabulary: [
-        {
-          word: "さようなら",
-          reading: "sayounara",
-          meaning: "Goodbye (formal/long farewell)",
-          partOfSpeech: "Expression",
-        },
-      ],
-    },
-    {
-      index: 11,
-      japaneseText: "じゃあね",
-      romaji: "Jaa ne",
-      meaning: "See you! (casual)",
-      startTime: 33,
-      endTime: 36,
-      vocabulary: [
-        {
-          word: "じゃあ",
-          reading: "jaa",
-          meaning: "Well then / So",
-          partOfSpeech: "Conjunction",
-        },
-        {
-          word: "ね",
-          reading: "ne",
-          meaning: "Right? / Isn't it?",
-          partOfSpeech: "Particle",
-        },
-      ],
-    },
-  ],
-};
 
 // Playback speed options
 const playbackSpeeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -320,15 +59,20 @@ export default function VideoPlayerPage() {
   const router = useRouter();
   const videoId = params.videoId as string;
 
-  // In a real app, fetch video data based on videoId
-  const video = mockVideoDetail;
+  // Data fetching state
+  const [video, setVideo] = useState<VideoType | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Player state
   const [autoStop, setAutoStop] = useState(false);
   const [isLargeVideo, setIsLargeVideo] = useState(false);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
-  const [activeSubtitleIndex, setActiveSubtitleIndex] = useState<number | null>(null);
-  const [selectedVocabulary, setSelectedVocabulary] = useState<VocabularyWord | null>(null);
+  const [activeSubtitleIndex, setActiveSubtitleIndex] = useState<number | null>(
+    null
+  );
+  const [selectedVocabulary, setSelectedVocabulary] =
+    useState<VocabularyWord | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [showVideoThumbnail, setShowVideoThumbnail] = useState(true);
 
@@ -336,15 +80,43 @@ export default function VideoPlayerPage() {
   const transcriptRef = useRef<HTMLDivElement>(null);
   const autoStopTriggeredRef = useRef<Set<number>>(new Set());
 
+  // Fetch video data from API
+  useEffect(() => {
+    async function fetchVideo() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const data = await videoApi.getById(videoId);
+        setVideo(data);
+      } catch (err: any) {
+        console.error("Failed to fetch video:", err);
+        if (err.status === 404) {
+          setError("Video not found");
+        } else {
+          setError(err.message || "Failed to load video");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (videoId) {
+      fetchVideo();
+    }
+  }, [videoId]);
+
+  // Get subtitles from video (with safe fallback)
+  const subtitles: SubtitleSegment[] = video?.subtitles ?? [];
+
   // Find current subtitle based on time
   const findActiveSubtitle = useCallback(
     (currentTime: number) => {
-      return video.subtitles.findIndex(
+      return subtitles.findIndex(
         (subtitle) =>
           currentTime >= subtitle.startTime && currentTime < subtitle.endTime
       );
     },
-    [video.subtitles]
+    [subtitles]
   );
 
   // Handle time updates from YouTube player
@@ -358,7 +130,7 @@ export default function VideoPlayerPage() {
 
       // Auto-stop logic
       if (autoStop && activeSubtitleIndex !== null && activeSubtitleIndex >= 0) {
-        const currentSubtitle = video.subtitles[activeSubtitleIndex];
+        const currentSubtitle = subtitles[activeSubtitleIndex];
         if (
           currentTime >= currentSubtitle.endTime - 0.1 &&
           !autoStopTriggeredRef.current.has(activeSubtitleIndex)
@@ -368,7 +140,7 @@ export default function VideoPlayerPage() {
         }
       }
     },
-    [findActiveSubtitle, activeSubtitleIndex, autoStop, video.subtitles]
+    [findActiveSubtitle, activeSubtitleIndex, autoStop, subtitles]
   );
 
   // Handle player state changes
@@ -378,9 +150,9 @@ export default function VideoPlayerPage() {
     }
   }, []);
 
-  // Initialize YouTube player
+  // Initialize YouTube player (only when video is loaded)
   const player = useYouTubePlayer("youtube-player", {
-    videoId: video.youtubeId,
+    videoId: video?.youtubeId ?? "",
     onTimeUpdate: handleTimeUpdate,
     onStateChange: handleStateChange,
   });
@@ -402,6 +174,8 @@ export default function VideoPlayerPage() {
 
   // Keyboard shortcuts
   useEffect(() => {
+    if (!video) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore if typing in an input
       if (
@@ -431,16 +205,16 @@ export default function VideoPlayerPage() {
         case "ArrowUp":
           e.preventDefault();
           if (activeSubtitleIndex !== null && activeSubtitleIndex > 0) {
-            handleSubtitleClick(video.subtitles[activeSubtitleIndex - 1]);
+            handleSubtitleClick(subtitles[activeSubtitleIndex - 1]);
           }
           break;
         case "ArrowDown":
           e.preventDefault();
           if (
             activeSubtitleIndex !== null &&
-            activeSubtitleIndex < video.subtitles.length - 1
+            activeSubtitleIndex < subtitles.length - 1
           ) {
-            handleSubtitleClick(video.subtitles[activeSubtitleIndex + 1]);
+            handleSubtitleClick(subtitles[activeSubtitleIndex + 1]);
           }
           break;
       }
@@ -448,22 +222,19 @@ export default function VideoPlayerPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [player, activeSubtitleIndex, video.subtitles]);
+  }, [player, activeSubtitleIndex, subtitles, video]);
 
   // Handle subtitle click - seek to timestamp
   const handleSubtitleClick = (subtitle: SubtitleSegment) => {
     player.seekTo(subtitle.startTime);
     autoStopTriggeredRef.current.delete(subtitle.index);
-    // if (player.playerState !== "playing") {
-    //   player.play();
-    // }
     player.play();
   };
 
   // Replay current subtitle
   const replayCurrentSubtitle = () => {
     if (activeSubtitleIndex !== null && activeSubtitleIndex >= 0) {
-      const subtitle = video.subtitles[activeSubtitleIndex];
+      const subtitle = subtitles[activeSubtitleIndex];
       autoStopTriggeredRef.current.delete(activeSubtitleIndex);
       player.seekTo(subtitle.startTime);
       player.play();
@@ -480,27 +251,78 @@ export default function VideoPlayerPage() {
   const goToPrevSubtitle = () => {
     const currentIndex = activeSubtitleIndex ?? 0;
     if (currentIndex > 0) {
-      handleSubtitleClick(video.subtitles[currentIndex - 1]);
+      handleSubtitleClick(subtitles[currentIndex - 1]);
     }
   };
 
   const goToNextSubtitle = () => {
     const currentIndex = activeSubtitleIndex ?? -1;
-    if (currentIndex < video.subtitles.length - 1) {
-      handleSubtitleClick(video.subtitles[currentIndex + 1]);
+    if (currentIndex < subtitles.length - 1) {
+      handleSubtitleClick(subtitles[currentIndex + 1]);
     }
   };
 
   // Get current subtitle
   const currentSubtitle =
     activeSubtitleIndex !== null && activeSubtitleIndex >= 0
-      ? video.subtitles[activeSubtitleIndex]
+      ? subtitles[activeSubtitleIndex]
       : null;
 
   // Calculate progress
-  const progress = video.subtitles.length > 0
-    ? ((activeSubtitleIndex ?? 0) + 1) / video.subtitles.length
-    : 0;
+  const progress =
+    subtitles.length > 0
+      ? ((activeSubtitleIndex ?? 0) + 1) / subtitles.length
+      : 0;
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <Link
+          href="/learn/videos"
+          className="inline-flex items-center gap-2 text-neutral-400 hover:text-neutral-200 transition-colors mb-4"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Videos</span>
+        </Link>
+        <div className="flex flex-col items-center justify-center py-20">
+          <LoadingSpinner size="lg" />
+          <p className="text-neutral-400 mt-4">Loading video...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !video) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <Link
+          href="/learn/videos"
+          className="inline-flex items-center gap-2 text-neutral-400 hover:text-neutral-200 transition-colors mb-4"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Videos</span>
+        </Link>
+        <Card>
+          <CardContent className="py-16 text-center">
+            <Video className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
+            <h2 className="text-xl font-heading font-semibold text-neutral-200 mb-2">
+              {error === "Video not found" ? "Video Not Found" : "Error Loading Video"}
+            </h2>
+            <p className="text-neutral-400 mb-6">
+              {error === "Video not found"
+                ? "The video you're looking for doesn't exist or has been removed."
+                : error || "An unexpected error occurred while loading the video."}
+            </p>
+            <Button onClick={() => router.push("/learn/videos")}>
+              Browse Videos
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-4">
@@ -529,9 +351,11 @@ export default function VideoPlayerPage() {
                 <h1 className="text-xl lg:text-2xl font-heading font-semibold text-neutral-200">
                   {video.title}
                 </h1>
-                <p className="text-lg text-neutral-400 mt-1">
-                  {video.titleJapanese}
-                </p>
+                {video.titleJapanese && (
+                  <p className="text-lg text-neutral-400 mt-1">
+                    {video.titleJapanese}
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant={getLevelColor(video.level) as any}>
@@ -547,7 +371,7 @@ export default function VideoPlayerPage() {
               </span>
               <span className="flex items-center gap-1">
                 <Star className="w-4 h-4 text-yellow-500" />
-                {video.stats.averageRating} ({video.stats.totalRatings})
+                {video.stats.averageRating.toFixed(1)} ({video.stats.totalRatings})
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
@@ -594,14 +418,18 @@ export default function VideoPlayerPage() {
                     variant="ghost"
                     size="sm"
                     onClick={goToPrevSubtitle}
-                    disabled={activeSubtitleIndex === null || activeSubtitleIndex <= 0}
+                    disabled={
+                      activeSubtitleIndex === null || activeSubtitleIndex <= 0
+                    }
                     title="Previous subtitle (↑)"
                   >
                     <SkipBack className="w-4 h-4" />
                   </Button>
 
                   <Button
-                    variant={player.playerState === "playing" ? "secondary" : "primary"}
+                    variant={
+                      player.playerState === "playing" ? "secondary" : "primary"
+                    }
                     size="sm"
                     onClick={() =>
                       player.playerState === "playing"
@@ -626,7 +454,7 @@ export default function VideoPlayerPage() {
                     onClick={goToNextSubtitle}
                     disabled={
                       activeSubtitleIndex === null ||
-                      activeSubtitleIndex >= video.subtitles.length - 1
+                      activeSubtitleIndex >= subtitles.length - 1
                     }
                     title="Next subtitle (↓)"
                   >
@@ -719,9 +547,11 @@ export default function VideoPlayerPage() {
                   </p>
 
                   {/* Romaji */}
-                  <p className="text-lg text-neutral-400 italic text-center">
-                    {currentSubtitle.romaji}
-                  </p>
+                  {currentSubtitle.romaji && (
+                    <p className="text-lg text-neutral-400 italic text-center">
+                      {currentSubtitle.romaji}
+                    </p>
+                  )}
 
                   {/* English Meaning */}
                   <p className="text-base text-neutral-300 text-center">
@@ -763,7 +593,12 @@ export default function VideoPlayerPage() {
                       size="sm"
                       onClick={toggleRecording}
                     >
-                      <Mic className={clsx("w-4 h-4", isRecording && "animate-pulse")} />
+                      <Mic
+                        className={clsx(
+                          "w-4 h-4",
+                          isRecording && "animate-pulse"
+                        )}
+                      />
                       <span>{isRecording ? "Stop" : "Record"}</span>
                     </Button>
                   </div>
@@ -843,8 +678,8 @@ export default function VideoPlayerPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-neutral-400">
                     {activeSubtitleIndex !== null
-                      ? `${activeSubtitleIndex + 1}/${video.subtitles.length}`
-                      : `0/${video.subtitles.length}`}
+                      ? `${activeSubtitleIndex + 1}/${subtitles.length}`
+                      : `0/${subtitles.length}`}
                   </span>
                   <div className="w-24 h-1.5 bg-neutral-700 rounded-full overflow-hidden">
                     <div
@@ -862,83 +697,92 @@ export default function VideoPlayerPage() {
               className="overflow-y-auto"
               style={{ maxHeight: "calc(100vh - 350px)", minHeight: "400px" }}
             >
-              {video.subtitles.map((subtitle) => (
-                <div
-                  key={subtitle.index}
-                  data-subtitle-index={subtitle.index}
-                  onClick={() => handleSubtitleClick(subtitle)}
-                  className={clsx(
-                    "p-4 border-b border-neutral-700/50 cursor-pointer transition-all",
-                    activeSubtitleIndex === subtitle.index
-                      ? "bg-yellow-500/10 border-l-4 border-l-yellow-500"
-                      : "hover:bg-neutral-800/50"
-                  )}
-                >
-                  <div className="flex items-start gap-3">
-                    {/* Index Badge */}
-                    <span
-                      className={clsx(
-                        "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium",
-                        activeSubtitleIndex === subtitle.index
-                          ? "bg-yellow-500 text-neutral-900"
-                          : "bg-neutral-700 text-neutral-400"
-                      )}
-                    >
-                      {subtitle.index + 1}
-                    </span>
-
-                    {/* Subtitle Content */}
-                    <div className="flex-1 min-w-0">
-                      <p
+              {subtitles.length === 0 ? (
+                <div className="p-8 text-center">
+                  <BookOpen className="w-10 h-10 text-neutral-600 mx-auto mb-3" />
+                  <p className="text-neutral-400">No subtitles available</p>
+                </div>
+              ) : (
+                subtitles.map((subtitle) => (
+                  <div
+                    key={subtitle.index}
+                    data-subtitle-index={subtitle.index}
+                    onClick={() => handleSubtitleClick(subtitle)}
+                    className={clsx(
+                      "p-4 border-b border-neutral-700/50 cursor-pointer transition-all",
+                      activeSubtitleIndex === subtitle.index
+                        ? "bg-yellow-500/10 border-l-4 border-l-yellow-500"
+                        : "hover:bg-neutral-800/50"
+                    )}
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* Index Badge */}
+                      <span
                         className={clsx(
-                          "text-base font-medium",
+                          "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium",
                           activeSubtitleIndex === subtitle.index
-                            ? "text-neutral-100"
-                            : "text-neutral-200"
+                            ? "bg-yellow-500 text-neutral-900"
+                            : "bg-neutral-700 text-neutral-400"
                         )}
                       >
-                        {subtitle.japaneseText}
-                      </p>
-                      <p className="text-sm text-neutral-400 italic mt-0.5">
-                        {subtitle.romaji}
-                      </p>
-                      <p className="text-sm text-neutral-500 mt-0.5">
-                        {subtitle.meaning}
-                      </p>
+                        {subtitle.index + 1}
+                      </span>
+
+                      {/* Subtitle Content */}
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={clsx(
+                            "text-base font-medium",
+                            activeSubtitleIndex === subtitle.index
+                              ? "text-neutral-100"
+                              : "text-neutral-200"
+                          )}
+                        >
+                          {subtitle.japaneseText}
+                        </p>
+                        {subtitle.romaji && (
+                          <p className="text-sm text-neutral-400 italic mt-0.5">
+                            {subtitle.romaji}
+                          </p>
+                        )}
+                        <p className="text-sm text-neutral-500 mt-0.5">
+                          {subtitle.meaning}
+                        </p>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          className="p-1.5 text-neutral-500 hover:text-neutral-300 transition-colors"
+                          title="Edit"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Edit functionality
+                          }}
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          className="p-1.5 text-neutral-500 hover:text-neutral-300 transition-colors"
+                          title="Report"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Report functionality
+                          }}
+                        >
+                          <AlertCircle className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        className="p-1.5 text-neutral-500 hover:text-neutral-300 transition-colors"
-                        title="Edit"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Edit functionality
-                        }}
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        className="p-1.5 text-neutral-500 hover:text-neutral-300 transition-colors"
-                        title="Report"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Report functionality
-                        }}
-                      >
-                        <AlertCircle className="w-4 h-4" />
-                      </button>
+                    {/* Timestamp */}
+                    <div className="mt-2 ml-10 text-xs text-neutral-500">
+                      {formatDuration(Math.floor(subtitle.startTime))} -{" "}
+                      {formatDuration(Math.floor(subtitle.endTime))}
                     </div>
                   </div>
-
-                  {/* Timestamp */}
-                  <div className="mt-2 ml-10 text-xs text-neutral-500">
-                    {formatDuration(Math.floor(subtitle.startTime))} -{" "}
-                    {formatDuration(Math.floor(subtitle.endTime))}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </Card>
         </div>
@@ -948,7 +792,9 @@ export default function VideoPlayerPage() {
       <div className="text-center text-sm text-neutral-500 py-4">
         <span className="inline-flex items-center gap-4">
           <span>
-            <kbd className="px-2 py-1 bg-neutral-800 rounded text-xs">Space</kbd>{" "}
+            <kbd className="px-2 py-1 bg-neutral-800 rounded text-xs">
+              Space
+            </kbd>{" "}
             Play/Pause
           </span>
           <span>
