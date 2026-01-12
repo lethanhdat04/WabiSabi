@@ -2,336 +2,349 @@
 
 A comprehensive Japanese language learning platform featuring video-based practice, vocabulary management, spaced repetition, and community features.
 
-## Project Overview
+## Current Status
 
-Nihongo Master is designed to help learners improve their Japanese language skills through:
+**Phase: End-to-End Integration Complete**
 
-- **Video-based Learning**: Practice listening with real Japanese content
-- **Shadowing Practice**: Improve pronunciation by repeating after native speakers
-- **Dictation Practice**: Enhance listening comprehension by transcribing audio
-- **Vocabulary Decks**: Learn and review vocabulary with flashcards and quizzes
-- **Spaced Repetition**: Optimize learning with intelligent review scheduling
-- **Community Forum**: Connect with other learners, share tips, and ask questions
+| Component | Status |
+|-----------|--------|
+| Backend API | Done |
+| MongoDB Models | Done |
+| Frontend UI | Done |
+| Authentication | Done |
+| API Integration | Done |
+| Protected Routes | Done |
+| Testing | Pending |
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+#### Node.js 18+
+```bash
+# Ubuntu/WSL
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Verify
+node -v
+npm -v
+```
+
+#### JDK 17+
+```bash
+# Ubuntu/WSL
+sudo apt update
+sudo apt install -y openjdk-17-jdk
+
+# Verify
+java -version
+```
+
+#### MongoDB 6+
+```bash
+# Using Docker (recommended)
+docker run -d -p 27017:27017 --name mongodb mongo:6
+
+# Or install locally - see https://www.mongodb.com/docs/manual/installation/
+```
+
+---
+
+### 1. Start MongoDB
+```bash
+# If using Docker
+docker start mongodb
+
+# Or if container doesn't exist yet
+docker run -d -p 27017:27017 --name mongodb mongo:6
+```
+
+### 2. Start Backend
+```bash
+cd backend
+
+# Configure (edit src/main/resources/application.yml)
+# Set: spring.data.mongodb.uri, jwt.secret
+
+./gradlew bootRun
+# Runs on http://localhost:8080
+```
+
+### 3. Start Frontend
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Create .env.local
+echo "NEXT_PUBLIC_API_URL=http://localhost:8080" > .env.local
+
+npm run dev
+# Runs on http://localhost:3000
+```
+
+### 4. Test the App
+1. Open http://localhost:3000
+2. Click "Sign up" to create account
+3. Login and explore!
+
+---
+
+## Features
+
+### Completed Features
+
+#### Authentication
+- User registration with validation
+- Login with email or username
+- JWT token authentication
+- Automatic token refresh
+- Protected routes
+- Logout functionality
+
+#### Learning Dashboard (`/learn`)
+- Daily progress overview
+- Recent vocabulary decks
+- Recent videos
+- Quick access to practice modes
+
+#### Practice Center (`/practice`)
+- Practice mode selection
+- Session statistics
+- Score tracking
+- Practice history
+
+#### Vocabulary (`/decks`)
+- Browse all decks
+- Filter by JLPT level
+- Search decks
+- View deck details
+- Flashcard study mode
+- Quiz mode
+
+#### Community (`/community`)
+- Browse forum posts
+- Filter by topic
+- Like/comment counts
+- Create new posts
+
+#### User Profile (`/profile`)
+- User statistics
+- Skill levels
+- Learning preferences
+- Account settings
+
+#### Progress Tracking (`/progress`, `/history`)
+- Overall progress dashboard
+- Skill breakdown
+- Practice history log
+- Session details
+
+### Pending Features
+- Video player with subtitle sync
+- Audio recording for shadowing
+- Real-time practice submission
+- Rich text editor for posts
+- Global search
+
+---
+
+## Project Structure
+
+```
+Nihongo Master/
+├── backend/                    # Spring Boot + Kotlin
+│   └── src/main/kotlin/com/nihongomaster/
+│       ├── config/             # Spring & Security config
+│       ├── controller/         # REST API endpoints
+│       ├── domain/             # MongoDB entities
+│       ├── dto/                # Request/Response DTOs
+│       ├── repository/         # Data access
+│       ├── security/           # JWT authentication
+│       └── service/            # Business logic
+│
+├── frontend/                   # Next.js 14 + TypeScript
+│   └── src/
+│       ├── app/                # App Router pages
+│       │   ├── (auth)/         # Login, Register
+│       │   └── (main)/         # Main app pages
+│       ├── components/         # React components
+│       │   ├── ui/             # Reusable UI
+│       │   └── layout/         # Layout components
+│       └── lib/                # Utilities
+│           ├── api-client.ts   # API functions
+│           └── auth-context.tsx # Auth state
+│
+├── .claude/                    # Development context
+│   ├── context.md              # Session history
+│   └── next-steps.md           # Todo list
+│
+├── INTEGRATION_CHECKLIST.md    # Testing checklist
+├── AUDIT_REPORT.md             # Technical audit
+└── README.md                   # This file
+```
+
+---
 
 ## Tech Stack
 
 ### Backend
-- **Language**: Kotlin
-- **Framework**: Spring Boot 3.x
-- **Database**: MongoDB
-- **Authentication**: JWT (JSON Web Tokens)
-- **API Documentation**: OpenAPI/Swagger
-- **Build Tool**: Gradle
+| Technology | Purpose |
+|------------|---------|
+| Kotlin | Language |
+| Spring Boot 3 | Framework |
+| MongoDB | Database |
+| JWT | Authentication |
+| Gradle | Build tool |
 
 ### Frontend
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **UI Library**: React 18
-- **Styling**: Tailwind CSS
-- **Icons**: Lucide React
-- **State Management**: Zustand (configured)
+| Technology | Purpose |
+|------------|---------|
+| Next.js 14 | Framework |
+| React 18 | UI Library |
+| TypeScript | Language |
+| Tailwind CSS | Styling |
+| Lucide React | Icons |
 
-### Database
-- **MongoDB** with the following collections:
-  - `users` - User accounts and profiles
-  - `refresh_tokens` - JWT refresh token management
-  - `posts` - Community forum posts
-  - `comments` - Post comments
-  - `post_likes` / `comment_likes` - Like tracking
-  - `videos` - Learning video content
-  - `vocabulary_decks` - Vocabulary deck definitions
-  - `vocabulary_progress` - User learning progress
-  - `dictation_attempts` - Dictation practice records
-  - `shadowing_attempts` - Shadowing practice records
+---
 
-## Folder Structure
+## API Endpoints
 
+### Authentication
 ```
-Nihongo Master/
-├── backend/
-│   └── src/main/kotlin/com/nihongomaster/
-│       ├── config/              # Spring configuration
-│       ├── controller/          # REST API controllers
-│       ├── domain/              # MongoDB entities
-│       │   ├── user/            # User, RefreshToken
-│       │   ├── forum/           # Post, Comment, Likes
-│       │   ├── video/           # Video, SubtitleSegment
-│       │   ├── vocabulary/      # Deck, Progress
-│       │   └── practice/        # Dictation, Shadowing attempts
-│       ├── dto/                 # Request/Response DTOs
-│       ├── exception/           # Custom exceptions
-│       ├── mapper/              # Entity-DTO mappers
-│       ├── repository/          # MongoDB repositories
-│       ├── security/            # JWT authentication
-│       └── service/             # Business logic
-│
-├── frontend/
-│   └── src/
-│       ├── app/                 # Next.js App Router pages
-│       │   ├── (main)/          # Main app layout group
-│       │   │   ├── learn/       # Learning pages
-│       │   │   ├── practice/    # Practice pages
-│       │   │   ├── decks/       # Vocabulary deck pages
-│       │   │   ├── community/   # Community pages
-│       │   │   ├── profile/     # User profile
-│       │   │   ├── progress/    # Progress dashboard
-│       │   │   └── history/     # Practice history
-│       │   ├── globals.css      # Global styles
-│       │   └── layout.tsx       # Root layout
-│       ├── components/
-│       │   ├── ui/              # Reusable UI components
-│       │   └── layout/          # Layout components
-│       └── lib/
-│           └── mock-data.ts     # Mock data for development
-│
-├── AUDIT_REPORT.md              # Technical audit report
-└── README.md                    # This file
+POST /api/auth/register    # Create account
+POST /api/auth/login       # Get tokens
+POST /api/auth/refresh     # Refresh access token
+POST /api/auth/logout      # Invalidate tokens
 ```
 
-## Implemented Features
-
-### Learning Module
-- **Learning Dashboard** (`/learn`) - Overview with stats, recent activity, quick access
-- **Video Library** (`/learn/videos`) - Browse videos by category and JLPT level
-- **Vocabulary Overview** (`/learn/vocabulary`) - Browse vocabulary decks
-
-### Practice Module
-- **Practice Center** (`/practice`) - Central hub for all practice modes
-- **Shadowing** (`/practice/shadowing`) - Listen and repeat exercises
-- **Dictation** (`/practice/dictation`) - Listen and transcribe exercises
-- **Flashcards** (`/practice/flashcards`) - Spaced repetition review
-- **Fill-in-the-Blank** (`/practice/fill-in`) - Grammar and vocabulary drills
-- **Practice Results** (`/practice/[videoId]/result`) - Detailed feedback and scores
-
-### Vocabulary Module
-- **Deck Library** (`/decks`) - Browse public and personal decks
-- **Deck Detail** (`/decks/[deckId]`) - View deck content and progress
-- **Deck Flashcards** (`/decks/[deckId]/flashcards`) - Study specific deck
-- **Deck Quiz** (`/decks/[deckId]/quiz`) - Test vocabulary knowledge
-- **Spaced Repetition Review** (`/decks/review`) - Review due items across all decks
-
-### Community Module
-- **Community Feed** (`/community`) - Browse and search posts
-- **Create Post** (`/community/new`) - Write new discussion posts
-- **Post Detail** (`/community/[postId]`) - View post and comments
-
-### User Module
-- **Profile** (`/profile`) - User profile with stats and achievements
-- **Progress Dashboard** (`/progress`) - Skill breakdown and milestones
-- **Practice History** (`/history`) - Session logs and performance tracking
-
-## Available Pages/Routes
-
-| Route | Description |
-|-------|-------------|
-| `/learn` | Learning dashboard |
-| `/learn/videos` | Video library |
-| `/learn/vocabulary` | Vocabulary decks list |
-| `/practice` | Practice mode selection |
-| `/practice/shadowing` | Shadowing practice |
-| `/practice/dictation` | Dictation practice |
-| `/practice/flashcards` | Flashcard review |
-| `/practice/fill-in` | Fill-in-the-blank |
-| `/practice/[videoId]/result` | Practice results |
-| `/decks` | Deck library |
-| `/decks/[deckId]` | Deck detail |
-| `/decks/[deckId]/flashcards` | Deck flashcard mode |
-| `/decks/[deckId]/quiz` | Deck quiz mode |
-| `/decks/review` | Spaced repetition review |
-| `/community` | Community feed |
-| `/community/new` | Create new post |
-| `/community/[postId]` | Post detail |
-| `/profile` | User profile |
-| `/progress` | Progress dashboard |
-| `/history` | Practice history |
-
-## How to Run Locally
-
-### Prerequisites
-- Node.js 18+ (for frontend)
-- JDK 17+ (for backend)
-- MongoDB 6+ (local or Atlas)
-- Gradle (or use wrapper)
-
-### Backend Setup
-
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-
-2. Configure MongoDB connection in `application.yml`:
-   ```yaml
-   spring:
-     data:
-       mongodb:
-         uri: mongodb://localhost:27017/nihongo_master
-
-   jwt:
-     secret: your-secret-key-here
-     access-token-expiration: 3600000    # 1 hour
-     refresh-token-expiration: 604800000  # 7 days
-   ```
-
-3. Run the application:
-   ```bash
-   ./gradlew bootRun
-   ```
-
-4. Backend will be available at `http://localhost:8080`
-5. Swagger UI at `http://localhost:8080/swagger-ui.html`
-
-### Frontend Setup
-
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Create environment file `.env.local`:
-   ```env
-   NEXT_PUBLIC_API_URL=http://localhost:8080/api
-   ```
-
-4. Run the development server:
-   ```bash
-   npm run dev
-   ```
-
-5. Frontend will be available at `http://localhost:3000`
-
-### Running Both Together
-
-For development, run both services in separate terminals:
-
-**Terminal 1 (Backend):**
-```bash
-cd backend && ./gradlew bootRun
+### Users
+```
+GET  /api/users/me         # Current user profile
+PUT  /api/users/me         # Update profile
+GET  /api/users/profile/{username}  # Public profile
 ```
 
-**Terminal 2 (Frontend):**
-```bash
-cd frontend && npm run dev
+### Videos
+```
+GET  /api/videos           # List videos
+GET  /api/videos/{id}      # Video details
+GET  /api/videos/search    # Search videos
 ```
 
-## UI/UX Design Rules
+### Vocabulary
+```
+GET  /api/vocabulary/decks           # List decks
+GET  /api/vocabulary/decks/{id}      # Deck details
+GET  /api/vocabulary/decks/{id}/progress  # User progress
+POST /api/vocabulary/decks/{id}/practice/start  # Start session
+```
 
-The frontend follows a strict, minimalist design system:
+### Practice
+```
+POST /api/practice/dictation/attempts    # Submit dictation
+POST /api/practice/shadowing/attempts    # Submit shadowing
+GET  /api/practice/dictation/stats       # User stats
+GET  /api/practice/shadowing/stats       # User stats
+```
 
-### Color Palette
-| Usage | Color | Tailwind Class |
-|-------|-------|----------------|
-| Background | Dark gray | `bg-neutral-900` |
-| Surface | Lighter gray | `bg-neutral-800` |
-| Primary text | Light gray | `text-neutral-200` |
-| Secondary text | Medium gray | `text-neutral-400` |
-| Accent | Yellow | `text-yellow-500`, `bg-yellow-500` |
-| Borders | Subtle gray | `border-neutral-700` |
+### Forum
+```
+GET  /api/forum/posts          # List posts
+POST /api/forum/posts          # Create post
+GET  /api/forum/posts/{id}     # Post details
+POST /api/forum/posts/{id}/like    # Like post
+POST /api/forum/posts/{id}/comments  # Add comment
+```
 
-### Design Principles
-- **No shadows** - Flat design without box shadows
-- **No gradients** - Solid colors only
-- **No blur/glass effects** - Clean, sharp edges
-- **No emojis** - Text-based communication only
-- **Consistent borders** - Always `border border-neutral-700`
-- **Restrained spacing** - Primarily 8px, 12px, 16px scale
+---
+
+## Configuration
+
+### Backend (`application.yml`)
+```yaml
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/nihongo_master
+
+jwt:
+  secret: your-secure-secret-key-at-least-32-chars
+  access-token-expiration: 3600000     # 1 hour
+  refresh-token-expiration: 604800000  # 7 days
+```
+
+### Frontend (`.env.local`)
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8080
+```
+
+---
+
+## UI Design System
+
+### Colors
+| Element | Color |
+|---------|-------|
+| Background | `neutral-900` |
+| Surface | `neutral-800` |
+| Primary Text | `neutral-200` |
+| Secondary Text | `neutral-400` |
+| Accent | `yellow-500` |
+| Borders | `neutral-700` |
 
 ### Typography
-- **Headings**: Montserrat Alternates (font-weight: 600)
-- **Body**: Be Vietnam Pro (font-weight: 400-500)
+- Headings: Montserrat Alternates
+- Body: Be Vietnam Pro
 
-### Border Radius
+### Components
+- Cards: `rounded-xl border border-neutral-700`
 - Buttons: `rounded-lg`
-- Cards: `rounded-xl`
 - Inputs: `rounded-md`
 
-### Icons
-- Library: Lucide React
-- Style: Outline only
-- Size: `w-5 h-5` or `w-6 h-6`
+---
 
-## Mock Data & Backend Integration
+## Development
 
-### Current State
-The frontend currently uses **mock data** for development and demonstration:
-- Mock data located in `/frontend/src/lib/mock-data.ts`
-- Includes sample decks, videos, vocabulary, and user statistics
-- Practice submissions use simulated delays
+### Run Tests
+```bash
+# Backend
+cd backend
+./gradlew test
 
-### Backend Integration Notes
-When integrating with the backend:
-
-1. **API Client**: Create a centralized API client in `/lib/api-client.ts`
-
-2. **Authentication**:
-   - Store JWT tokens securely (httpOnly cookies recommended)
-   - Implement refresh token rotation
-   - Add auth context for global state
-
-3. **Data Fetching**:
-   - Replace mock imports with API calls
-   - Consider React Query or SWR for caching
-   - Handle loading and error states
-
-4. **Type Alignment**:
-   - Backend uses enums (JLPTLevel, VideoCategory, etc.)
-   - Ensure frontend types match DTO structures
-   - Consider generating types from OpenAPI spec
-
-### API Endpoints Reference
-
-Key backend endpoints for integration:
-
-```
-# Authentication
-POST /api/auth/register
-POST /api/auth/login
-POST /api/auth/refresh
-POST /api/auth/logout
-
-# Videos
-GET  /api/videos
-GET  /api/videos/{id}
-GET  /api/videos/search?q=...
-
-# Vocabulary
-GET  /api/vocabulary/decks
-GET  /api/vocabulary/decks/{id}
-POST /api/vocabulary/practice/flashcard/cards
-POST /api/vocabulary/practice/fill-in/questions
-
-# Practice
-POST /api/practice/dictation/attempts
-POST /api/practice/shadowing/attempts
-GET  /api/practice/dictation/stats
-GET  /api/practice/shadowing/stats
-
-# Forum
-GET  /api/forum/posts
-POST /api/forum/posts
-GET  /api/forum/posts/{id}
-POST /api/forum/posts/{id}/comments
+# Frontend
+cd frontend
+npm run lint
+npm run build
 ```
 
-## Development Notes
+### Build for Production
+```bash
+# Backend
+cd backend
+./gradlew build
+java -jar build/libs/nihongo-master.jar
 
-### Known Limitations
-- Frontend-backend integration not yet implemented
-- Authentication pages not yet created
-- Some sidebar links (Settings, Help) lead to non-existent pages
-- Mock data is static and does not persist
+# Frontend
+cd frontend
+npm run build
+npm start
+```
 
-### Recommended Next Steps
-1. Create authentication pages (`/login`, `/register`)
-2. Implement API client layer
-3. Add auth context and protected routes
-4. Replace mock data with API calls
-5. Add loading and error state components
+---
+
+## Contributing
+
+1. Check `.claude/next-steps.md` for tasks
+2. Follow existing code patterns
+3. Test your changes
+4. Update documentation
+
+---
 
 ## License
 

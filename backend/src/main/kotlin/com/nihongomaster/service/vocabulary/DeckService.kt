@@ -528,7 +528,7 @@ class DeckService(
      */
     private fun getCreatorName(userId: String): String? {
         return userRepository.findById(userId)
-            .map { it.profile.displayName ?: it.username }
+            .map { it.displayName ?: it.username }
             .orElse(null)
     }
 

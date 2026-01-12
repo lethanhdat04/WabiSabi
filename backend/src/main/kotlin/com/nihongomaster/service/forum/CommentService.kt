@@ -2,7 +2,6 @@ package com.nihongomaster.service.forum
 
 import com.nihongomaster.domain.forum.Comment
 import com.nihongomaster.domain.forum.CommentStatus
-import com.nihongomaster.domain.user.Role
 import com.nihongomaster.dto.*
 import com.nihongomaster.exception.ForbiddenException
 import com.nihongomaster.exception.ResourceNotFoundException
@@ -65,7 +64,7 @@ class CommentService(
             postId = postId,
             authorId = userId,
             authorUsername = user.username,
-            authorAvatarUrl = user.profile.avatarUrl
+            authorAvatarUrl = user.avatarUrl
         )
 
         val savedComment = commentRepository.save(comment)
@@ -83,7 +82,7 @@ class CommentService(
         return mapper.toResponse(
             comment = savedComment,
             currentUserId = userId,
-            isAdmin = user.roles.contains(Role.ADMIN)
+            isAdmin = user.isAdmin()
         )
     }
 
@@ -379,7 +378,7 @@ class CommentService(
      */
     private fun isUserAdmin(userId: String): Boolean {
         return userRepository.findById(userId)
-            .map { it.roles.contains(Role.ADMIN) }
+            .map { it.isAdmin() }
             .orElse(false)
     }
 }

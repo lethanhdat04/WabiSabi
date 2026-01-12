@@ -3,7 +3,6 @@ package com.nihongomaster.service.forum
 import com.nihongomaster.domain.forum.ForumTopic
 import com.nihongomaster.domain.forum.Post
 import com.nihongomaster.domain.forum.PostStatus
-import com.nihongomaster.domain.user.Role
 import com.nihongomaster.dto.*
 import com.nihongomaster.exception.ForbiddenException
 import com.nihongomaster.exception.ResourceNotFoundException
@@ -48,7 +47,7 @@ class PostService(
         val user = userRepository.findById(userId)
             .orElseThrow { ResourceNotFoundException("User not found") }
 
-        if (request.topic == ForumTopic.ANNOUNCEMENTS && !user.roles.contains(Role.ADMIN)) {
+        if (request.topic == ForumTopic.ANNOUNCEMENTS && !user.isAdmin()) {
             throw ForbiddenException("Only administrators can post announcements")
         }
 
@@ -56,7 +55,7 @@ class PostService(
             request = request,
             authorId = userId,
             authorUsername = user.username,
-            authorAvatarUrl = user.profile.avatarUrl
+            authorAvatarUrl = user.avatarUrl
         )
 
         val savedPost = postRepository.save(post)
@@ -65,7 +64,7 @@ class PostService(
         return mapper.toResponse(
             post = savedPost,
             currentUserId = userId,
-            isAdmin = user.roles.contains(Role.ADMIN)
+            isAdmin = user.isAdmin()
         )
     }
 
@@ -372,7 +371,7 @@ class PostService(
      */
     private fun isUserAdmin(userId: String): Boolean {
         return userRepository.findById(userId)
-            .map { it.roles.contains(Role.ADMIN) }
+            .map { it.isAdmin() }
             .orElse(false)
     }
 

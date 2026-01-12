@@ -699,7 +699,8 @@ export const shadowingApi = {
 export interface Post {
   id: string;
   title: string;
-  content: string;
+  content?: string;
+  contentPreview?: string;
   topic: string;
   authorId: string;
   authorUsername: string;

@@ -237,8 +237,7 @@ export default function CommunityPage() {
                       {post.title}
                     </h3>
                     <p className="text-sm text-neutral-400 line-clamp-2 mb-3">
-                      {post.content.substring(0, 200)}
-                      {post.content.length > 200 ? "..." : ""}
+                      {post.contentPreview || post.content || ""}
                     </p>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">

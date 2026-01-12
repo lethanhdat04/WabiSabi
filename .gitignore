@@ -1,0 +1,84 @@
+# ==========================
+# IDE and Editor
+# ==========================
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ==========================
+# Claude Code
+# ==========================
+.claude/
+
+# ==========================
+# Backend - Kotlin/Gradle/Spring Boot
+# ==========================
+backend/.gradle/
+backend/build/
+backend/out/
+backend/bin/
+
+# Gradle wrapper (keep gradlew scripts, ignore cache)
+backend/.gradle/
+
+# Spring Boot
+backend/*.log
+backend/logs/
+
+# ==========================
+# Frontend - Next.js/Node.js
+# ==========================
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+
+# Environment files
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Debug logs
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# Vercel
+frontend/.vercel
+
+# TypeScript
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+# ==========================
+# General
+# ==========================
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Test output
+test-results/
+playwright-report/
