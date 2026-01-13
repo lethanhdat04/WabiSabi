@@ -38,6 +38,7 @@ import {
 import { useYouTubePlayer, PlayerState } from "@/lib/use-youtube-player";
 import { formatDuration, getLevelColor } from "@/lib/mock-data";
 import { videoApi, dictationApi, Video as VideoType, VocabularyReference } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
 import { clsx } from "clsx";
 
 interface SubtitleSegment {
@@ -104,6 +105,7 @@ function compareStrings(original: string, userInput: string): { result: Comparis
 export default function DictationPage() {
   const params = useParams();
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const videoId = params.videoId as string;
 
   // Data fetching state
@@ -317,6 +319,8 @@ export default function DictationPage() {
         segmentIndex: activeSubtitleIndex,
         userInputText: currentInput.trim(),
       });
+      // Refresh user data to update progress in UI
+      refreshUser?.();
     } catch (err) {
       // Silently fail - local comparison already shown
       console.error("Failed to submit dictation attempt:", err);

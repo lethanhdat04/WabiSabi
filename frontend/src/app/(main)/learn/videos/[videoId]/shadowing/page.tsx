@@ -34,7 +34,8 @@ import {
 } from "@/components/ui";
 import { useYouTubePlayer, PlayerState } from "@/lib/use-youtube-player";
 import { formatDuration, getLevelColor } from "@/lib/mock-data";
-import { videoApi, Video as VideoType, VocabularyReference } from "@/lib/api-client";
+import { videoApi, shadowingApi, Video as VideoType, VocabularyReference } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
 import { clsx } from "clsx";
 
 interface SubtitleSegment {
@@ -60,6 +61,7 @@ const playbackSpeeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
 export default function ShadowingPage() {
   const params = useParams();
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const videoId = params.videoId as string;
 
   // Data fetching state
@@ -299,7 +301,7 @@ export default function ShadowingPage() {
   };
 
   // Stop recording
-  const stopRecording = () => {
+  const stopRecording = async () => {
     if (recordingTimerRef.current) {
       clearInterval(recordingTimerRef.current);
       recordingTimerRef.current = null;
@@ -307,7 +309,7 @@ export default function ShadowingPage() {
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
-    } else if (activeSubtitleIndex !== null) {
+    } else if (activeSubtitleIndex !== null && video) {
       // Fallback for simulated recording
       const score = 60 + Math.random() * 35;
       const state = shadowingStates.get(activeSubtitleIndex);
@@ -317,6 +319,19 @@ export default function ShadowingPage() {
         recordingCount: (state?.recordingCount || 0) + 1,
         score: Math.round(score),
       });
+
+      // Submit to API for progress tracking (with placeholder audioUrl since we don't have real audio)
+      try {
+        await shadowingApi.submitAttempt({
+          videoId: video.id,
+          segmentIndex: activeSubtitleIndex,
+          audioUrl: "simulated://local-recording", // Placeholder - backend will use mock evaluation
+        });
+        // Refresh user data to update progress in UI
+        refreshUser?.();
+      } catch (err) {
+        console.error("Failed to submit shadowing attempt:", err);
+      }
     }
 
     setIsRecording(false);

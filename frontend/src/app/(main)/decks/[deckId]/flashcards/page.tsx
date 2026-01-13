@@ -28,6 +28,7 @@ import {
   Flashcard,
   FlashcardResult,
 } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
 import { getLevelColor } from "@/lib/hooks";
 
 type FlashcardState = "front" | "back";
@@ -36,6 +37,7 @@ type Answer = "EASY" | "GOOD" | "HARD" | "FORGOT";
 export default function DeckFlashcardsPage() {
   const params = useParams();
   const deckId = params.deckId as string;
+  const { refreshUser } = useAuth();
 
   const [deck, setDeck] = useState<VocabularyDeck | null>(null);
   const [cards, setCards] = useState<Flashcard[]>([]);
@@ -100,6 +102,8 @@ export default function DeckFlashcardsPage() {
         itemIndex: currentCard.itemIndex,
         result: answer,
       });
+      // Refresh user data to update progress in UI
+      refreshUser?.();
     } catch (err) {
       console.error("Failed to submit flashcard result:", err);
     }

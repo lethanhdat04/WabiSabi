@@ -29,6 +29,7 @@ import {
   VocabularyDeck,
   FillInQuestion,
 } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
 import { getLevelColor } from "@/lib/hooks";
 
 interface QuizResult {
@@ -42,6 +43,7 @@ interface QuizResult {
 export default function DeckQuizPage() {
   const params = useParams();
   const deckId = params.deckId as string;
+  const { refreshUser } = useAuth();
 
   const [deck, setDeck] = useState<VocabularyDeck | null>(null);
   const [questions, setQuestions] = useState<FillInQuestion[]>([]);
@@ -122,6 +124,8 @@ export default function DeckQuizPage() {
       setCurrentResult(result);
       setResults([...results, result]);
       setShowResult(true);
+      // Refresh user data to update progress in UI
+      refreshUser?.();
     } catch (err) {
       console.error("Failed to submit answer:", err);
       // Show error when API fails - we don't have the correct answer locally
