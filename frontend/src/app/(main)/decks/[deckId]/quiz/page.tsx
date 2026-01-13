@@ -124,16 +124,13 @@ export default function DeckQuizPage() {
       setShowResult(true);
     } catch (err) {
       console.error("Failed to submit answer:", err);
-      // Fallback to local comparison if API fails
-      const isCorrect =
-        answerToSubmit.toLowerCase().trim() === currentQuestion.prompt.toLowerCase().trim();
-
+      // Show error when API fails - we don't have the correct answer locally
       const result: QuizResult = {
         questionId: currentQuestion.questionId,
         userAnswer: answerToSubmit.trim(),
-        isCorrect,
-        correctAnswer: currentQuestion.prompt,
-        feedback: isCorrect ? "Correct!" : "Incorrect",
+        isCorrect: false,
+        correctAnswer: "(Unable to verify - please try again)",
+        feedback: "Connection error. Please check your internet and try again.",
       };
 
       setCurrentResult(result);

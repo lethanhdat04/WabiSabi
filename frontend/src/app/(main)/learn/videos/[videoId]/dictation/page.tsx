@@ -37,7 +37,7 @@ import {
 } from "@/components/ui";
 import { useYouTubePlayer, PlayerState } from "@/lib/use-youtube-player";
 import { formatDuration, getLevelColor } from "@/lib/mock-data";
-import { videoApi, Video as VideoType, VocabularyReference } from "@/lib/api-client";
+import { videoApi, dictationApi, Video as VideoType, VocabularyReference } from "@/lib/api-client";
 import { clsx } from "clsx";
 
 interface SubtitleSegment {
@@ -297,17 +297,30 @@ export default function DictationPage() {
   };
 
   // Check answer
-  const handleCheckAnswer = () => {
-    if (activeSubtitleIndex === null || !currentInput.trim()) return;
+  const handleCheckAnswer = async () => {
+    if (activeSubtitleIndex === null || !currentInput.trim() || !video) return;
 
     const subtitle = subtitles[activeSubtitleIndex];
     const { result, accuracy } = compareStrings(subtitle.japaneseText, currentInput);
 
+    // Update UI immediately with local comparison
     updateDictationState(activeSubtitleIndex, {
       isChecked: true,
       accuracy,
       comparisonResult: result,
     });
+
+    // Submit to API in background (for tracking progress)
+    try {
+      await dictationApi.submitAttempt({
+        videoId: video.id,
+        segmentIndex: activeSubtitleIndex,
+        userInputText: currentInput.trim(),
+      });
+    } catch (err) {
+      // Silently fail - local comparison already shown
+      console.error("Failed to submit dictation attempt:", err);
+    }
   };
 
   // Reveal answer

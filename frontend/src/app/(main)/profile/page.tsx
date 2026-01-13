@@ -15,6 +15,9 @@ import {
   Mail,
   Mic,
   Video,
+  X,
+  Save,
+  Loader2,
 } from "lucide-react";
 import {
   Card,
@@ -26,13 +29,34 @@ import {
   TabsList,
   TabsTrigger,
   LoadingPage,
+  Input,
 } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
+import { userApi } from "@/lib/api-client";
 import { getLevelColor } from "@/lib/hooks";
 
 export default function ProfilePage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
+
+  // Edit profile modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    displayName: "",
+    bio: "",
+    nativeLanguage: "",
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Edit preferences modal state
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false);
+  const [preferencesForm, setPreferencesForm] = useState({
+    dailyGoalMinutes: 30,
+    showFurigana: true,
+    autoPlayAudio: true,
+  });
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false);
 
   if (isLoading || !user) {
     return <LoadingPage message="Loading profile..." />;
@@ -42,6 +66,58 @@ export default function ProfilePage() {
     Listening: user.progress?.listeningScore || 0,
     Speaking: user.progress?.speakingScore || 0,
     Vocabulary: user.progress?.vocabularyScore || 0,
+  };
+
+  const openEditModal = () => {
+    setEditForm({
+      displayName: user.displayName || "",
+      bio: user.bio || "",
+      nativeLanguage: user.nativeLanguage || "",
+    });
+    setSaveError(null);
+    setShowEditModal(true);
+  };
+
+  const handleSaveProfile = async () => {
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      await userApi.updateProfile({
+        displayName: editForm.displayName,
+        bio: editForm.bio,
+        nativeLanguage: editForm.nativeLanguage,
+      });
+      await refreshUser?.();
+      setShowEditModal(false);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Failed to save profile");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openPreferencesModal = () => {
+    setPreferencesForm({
+      dailyGoalMinutes: user.preferences?.dailyGoalMinutes || 30,
+      showFurigana: user.preferences?.showFurigana ?? true,
+      autoPlayAudio: user.preferences?.autoPlayAudio ?? true,
+    });
+    setShowPreferencesModal(true);
+  };
+
+  const handleSavePreferences = async () => {
+    setIsSavingPreferences(true);
+
+    try {
+      await userApi.updatePreferences(preferencesForm);
+      await refreshUser?.();
+      setShowPreferencesModal(false);
+    } catch (err) {
+      console.error("Failed to save preferences:", err);
+    } finally {
+      setIsSavingPreferences(false);
+    }
   };
 
   return (
@@ -77,7 +153,7 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
-        <Button variant="secondary" size="sm">
+        <Button variant="secondary" size="sm" onClick={openEditModal}>
           <Edit className="w-4 h-4" />
           Edit Profile
         </Button>
@@ -309,7 +385,7 @@ export default function ProfilePage() {
                       </p>
                     </div>
                   </div>
-                  <Button variant="secondary" size="sm">
+                  <Button variant="secondary" size="sm" onClick={openEditModal}>
                     Change
                   </Button>
                 </div>
@@ -331,9 +407,15 @@ export default function ProfilePage() {
 
           <Card>
             <CardContent>
-              <h3 className="font-heading font-semibold text-neutral-200 mb-4">
-                Learning Preferences
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-heading font-semibold text-neutral-200">
+                  Learning Preferences
+                </h3>
+                <Button variant="secondary" size="sm" onClick={openPreferencesModal}>
+                  <Edit className="w-4 h-4" />
+                  Edit
+                </Button>
+              </div>
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-neutral-900 border border-neutral-700 rounded-lg">
                   <div>
@@ -379,6 +461,246 @@ export default function ProfilePage() {
                   <Badge variant={user.preferences?.autoPlayAudio ? "green" : "default"}>
                     {user.preferences?.autoPlayAudio ? "On" : "Off"}
                   </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Profile Modal */}
+      {showEditModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setShowEditModal(false)}
+        >
+          <Card
+            className="max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardContent>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-heading font-semibold text-neutral-200">
+                  Edit Profile
+                </h3>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="p-1 text-neutral-400 hover:text-neutral-200"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-neutral-400 mb-1">
+                    Display Name
+                  </label>
+                  <Input
+                    value={editForm.displayName}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, displayName: e.target.value })
+                    }
+                    placeholder="Your display name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-neutral-400 mb-1">
+                    Bio
+                  </label>
+                  <textarea
+                    value={editForm.bio}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, bio: e.target.value })
+                    }
+                    placeholder="Tell us about yourself..."
+                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-yellow-500 resize-none"
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-neutral-400 mb-1">
+                    Native Language
+                  </label>
+                  <select
+                    value={editForm.nativeLanguage}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, nativeLanguage: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 focus:outline-none focus:border-yellow-500"
+                  >
+                    <option value="">Select language</option>
+                    <option value="English">English</option>
+                    <option value="Vietnamese">Vietnamese</option>
+                    <option value="Chinese">Chinese</option>
+                    <option value="Korean">Korean</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="French">French</option>
+                    <option value="German">German</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                {saveError && (
+                  <p className="text-sm text-red-400">{saveError}</p>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowEditModal(false)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSaveProfile}
+                    disabled={isSaving}
+                    className="flex-1"
+                  >
+                    {isSaving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    Save
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Preferences Modal */}
+      {showPreferencesModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setShowPreferencesModal(false)}
+        >
+          <Card
+            className="max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardContent>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-heading font-semibold text-neutral-200">
+                  Learning Preferences
+                </h3>
+                <button
+                  onClick={() => setShowPreferencesModal(false)}
+                  className="p-1 text-neutral-400 hover:text-neutral-200"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-neutral-400 mb-1">
+                    Daily Goal (minutes)
+                  </label>
+                  <select
+                    value={preferencesForm.dailyGoalMinutes}
+                    onChange={(e) =>
+                      setPreferencesForm({
+                        ...preferencesForm,
+                        dailyGoalMinutes: parseInt(e.target.value),
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 focus:outline-none focus:border-yellow-500"
+                  >
+                    <option value={15}>15 minutes</option>
+                    <option value={30}>30 minutes</option>
+                    <option value={45}>45 minutes</option>
+                    <option value={60}>60 minutes</option>
+                    <option value={90}>90 minutes</option>
+                    <option value={120}>120 minutes</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-neutral-900 border border-neutral-700 rounded-lg">
+                  <div>
+                    <p className="text-neutral-200">Show Furigana</p>
+                    <p className="text-sm text-neutral-400">
+                      Display reading hints on kanji
+                    </p>
+                  </div>
+                  <button
+                    onClick={() =>
+                      setPreferencesForm({
+                        ...preferencesForm,
+                        showFurigana: !preferencesForm.showFurigana,
+                      })
+                    }
+                    className={`w-12 h-6 rounded-full transition-colors ${
+                      preferencesForm.showFurigana
+                        ? "bg-yellow-500"
+                        : "bg-neutral-700"
+                    }`}
+                  >
+                    <div
+                      className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                        preferencesForm.showFurigana
+                          ? "translate-x-6"
+                          : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-neutral-900 border border-neutral-700 rounded-lg">
+                  <div>
+                    <p className="text-neutral-200">Auto-play Audio</p>
+                    <p className="text-sm text-neutral-400">
+                      Automatically play pronunciation
+                    </p>
+                  </div>
+                  <button
+                    onClick={() =>
+                      setPreferencesForm({
+                        ...preferencesForm,
+                        autoPlayAudio: !preferencesForm.autoPlayAudio,
+                      })
+                    }
+                    className={`w-12 h-6 rounded-full transition-colors ${
+                      preferencesForm.autoPlayAudio
+                        ? "bg-yellow-500"
+                        : "bg-neutral-700"
+                    }`}
+                  >
+                    <div
+                      className={`w-5 h-5 bg-white rounded-full transition-transform ${
+                        preferencesForm.autoPlayAudio
+                          ? "translate-x-6"
+                          : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowPreferencesModal(false)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSavePreferences}
+                    disabled={isSavingPreferences}
+                    className="flex-1"
+                  >
+                    {isSavingPreferences ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    Save
+                  </Button>
                 </div>
               </div>
             </CardContent>
