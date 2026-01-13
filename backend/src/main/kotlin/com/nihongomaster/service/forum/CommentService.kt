@@ -319,6 +319,19 @@ class CommentService(
     }
 
     /**
+     * Toggle like on a comment.
+     */
+    @Transactional
+    fun toggleCommentLike(commentId: String, userId: String): CommentLikeResponse {
+        val isLiked = commentLikeRepository.existsByUserIdAndCommentId(userId, commentId)
+        return if (isLiked) {
+            unlikeComment(commentId, userId)
+        } else {
+            likeComment(commentId, userId)
+        }
+    }
+
+    /**
      * Unlike a comment.
      */
     @Transactional

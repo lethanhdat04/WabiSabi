@@ -831,7 +831,7 @@ export const forumApi = {
     fetchWithAuth(`/forum/comments/${commentId}`, { method: 'DELETE' }),
 
   likeComment: (commentId: string): Promise<{ isLiked: boolean; likeCount: number }> =>
-    fetchWithAuth(`/forum/comments/${commentId}/like`, { method: 'POST' }),
+    fetchWithAuth(`/forum/comments/${commentId}/like/toggle`, { method: 'POST' }),
 
   getReplies: (commentId: string, page = 0, size = 10): Promise<PageResponse<Comment>> =>
     fetchWithAuth(`/forum/comments/${commentId}/replies?page=${page}&size=${size}`),

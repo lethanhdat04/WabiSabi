@@ -104,6 +104,17 @@ class CommentController(
         return ResponseEntity.ok(response)
     }
 
+    @PostMapping("/{commentId}/like/toggle")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Toggle like on a comment")
+    fun toggleCommentLike(
+        @PathVariable commentId: String,
+        @CurrentUser user: UserPrincipal
+    ): ResponseEntity<CommentLikeResponse> {
+        val response = commentService.toggleCommentLike(commentId, user.id)
+        return ResponseEntity.ok(response)
+    }
+
     // ================================
     // User Comment Discovery
     // ================================
