@@ -56,9 +56,10 @@ interface TabsTriggerProps {
   value: string;
   children: ReactNode;
   className?: string;
+  onClick?: () => void;
 }
 
-function TabsTrigger({ value, children, className }: TabsTriggerProps) {
+function TabsTrigger({ value, children, className, onClick }: TabsTriggerProps) {
   const { activeTab, setActiveTab } = useTabsContext();
   const isActive = activeTab === value;
 
@@ -71,7 +72,10 @@ function TabsTrigger({ value, children, className }: TabsTriggerProps) {
           : "text-neutral-400 hover:text-neutral-200",
         className
       )}
-      onClick={() => setActiveTab(value)}
+      onClick={() => {
+        setActiveTab(value);
+        onClick?.();
+      }}
     >
       {children}
     </button>

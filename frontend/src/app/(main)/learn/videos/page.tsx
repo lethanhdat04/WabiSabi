@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { Search, Play, Star, Clock, Video } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, Play, Star, Clock, Video, X, Headphones, PenLine } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -19,7 +19,6 @@ const categories = [
   { value: "ALL", label: "All" },
   { value: "ANIME", label: "Anime" },
   { value: "DAILY_LIFE", label: "Daily Life" },
-  { value: "FOOD", label: "Food" },
   { value: "TRAVEL", label: "Travel" },
   { value: "BUSINESS", label: "Business" },
 ];
@@ -80,6 +79,7 @@ const getLevelColor = (level: string): string => {
 };
 
 export default function VideosPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLevel, setSelectedLevel] = useState("All");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
@@ -88,6 +88,22 @@ export default function VideosPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [selectedVideo, setSelectedVideo] = useState<VideoData | null>(null);
+
+  const handleVideoClick = (video: VideoData) => {
+    setSelectedVideo(video);
+  };
+
+  const handleModeSelect = (mode: "shadowing" | "dictation") => {
+    if (selectedVideo) {
+      if (mode === "shadowing") {
+        router.push(`/learn/videos/${selectedVideo.id}`);
+      } else {
+        router.push(`/learn/videos/${selectedVideo.id}/dictation`);
+      }
+      setSelectedVideo(null);
+    }
+  };
 
   useEffect(() => {
     fetchVideos();
@@ -229,7 +245,7 @@ export default function VideosPage() {
               <>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredVideos.map((video) => (
-                    <VideoCard key={video.id} video={video} />
+                    <VideoCard key={video.id} video={video} onClick={() => handleVideoClick(video)} />
                   ))}
                 </div>
 
@@ -239,7 +255,7 @@ export default function VideosPage() {
                     <Button
                       onClick={() => setPage((p) => Math.max(0, p - 1))}
                       disabled={page === 0}
-                      variant="outline"
+                      variant="secondary"
                     >
                       Previous
                     </Button>
@@ -251,7 +267,7 @@ export default function VideosPage() {
                         setPage((p) => Math.min(totalPages - 1, p + 1))
                       }
                       disabled={page >= totalPages - 1}
-                      variant="outline"
+                      variant="secondary"
                     >
                       Next
                     </Button>
@@ -262,13 +278,95 @@ export default function VideosPage() {
           </TabsContent>
         ))}
       </Tabs>
+
+      {/* Mode Selection Modal */}
+      {selectedVideo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setSelectedVideo(null)}
+        >
+          <Card
+            className="max-w-lg w-full mx-4 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setSelectedVideo(null)}
+              className="absolute top-4 right-4 p-2 text-neutral-400 hover:text-neutral-200 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <CardContent className="pt-6">
+              {/* Video Info */}
+              <div className="flex gap-4 mb-6">
+                <img
+                  src={selectedVideo.thumbnailUrl}
+                  alt={selectedVideo.title}
+                  className="w-32 h-20 object-cover rounded-lg"
+                />
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-neutral-200 line-clamp-2">
+                    {selectedVideo.title}
+                  </h3>
+                  <p className="text-sm text-neutral-400 mt-1">
+                    {selectedVideo.titleJapanese}
+                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant={getLevelColor(selectedVideo.level) as any}>
+                      {selectedVideo.level}
+                    </Badge>
+                    <span className="text-xs text-neutral-500">
+                      {formatDuration(selectedVideo.duration)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mode Selection */}
+              <h4 className="text-lg font-heading font-semibold text-neutral-200 mb-4 text-center">
+                Choose Practice Mode
+              </h4>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Shadowing Mode */}
+                <button
+                  onClick={() => handleModeSelect("shadowing")}
+                  className="p-4 rounded-xl border-2 border-neutral-700 hover:border-yellow-500 bg-neutral-800/50 hover:bg-neutral-800 transition-all group"
+                >
+                  <div className="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center mx-auto mb-3 group-hover:bg-yellow-500/20 transition-colors">
+                    <Headphones className="w-6 h-6 text-yellow-500" />
+                  </div>
+                  <h5 className="font-medium text-neutral-200 mb-1">Shadowing</h5>
+                  <p className="text-xs text-neutral-400">
+                    Listen and repeat along with subtitles
+                  </p>
+                </button>
+
+                {/* Dictation Mode */}
+                <button
+                  onClick={() => handleModeSelect("dictation")}
+                  className="p-4 rounded-xl border-2 border-neutral-700 hover:border-blue-500 bg-neutral-800/50 hover:bg-neutral-800 transition-all group"
+                >
+                  <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-500/20 transition-colors">
+                    <PenLine className="w-6 h-6 text-blue-500" />
+                  </div>
+                  <h5 className="font-medium text-neutral-200 mb-1">Dictation</h5>
+                  <p className="text-xs text-neutral-400">
+                    Listen and write what you hear
+                  </p>
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
 
-function VideoCard({ video }: { video: VideoData }) {
+function VideoCard({ video, onClick }: { video: VideoData; onClick: () => void }) {
   return (
-    <Link href={`/learn/videos/${video.id}`}>
+    <div onClick={onClick} className="cursor-pointer">
       <Card variant="interactive" className="h-full overflow-hidden">
         <div className="relative aspect-video bg-neutral-700">
           <img
@@ -315,6 +413,6 @@ function VideoCard({ video }: { video: VideoData }) {
           </div>
         </CardContent>
       </Card>
-    </Link>
+    </div>
   );
 }
