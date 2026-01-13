@@ -115,9 +115,9 @@ export function Navbar({ onMenuClick }: NavbarProps) {
               className="flex items-center gap-2 p-2 rounded-lg hover:bg-neutral-800 transition-colors"
             >
               <div className="w-8 h-8 bg-neutral-700 rounded-lg flex items-center justify-center overflow-hidden">
-                {user?.profilePictureUrl ? (
+                {user?.avatarUrl ? (
                   <img
-                    src={user.profilePictureUrl}
+                    src={user.avatarUrl}
                     alt={user.displayName || user.username}
                     className="w-full h-full object-cover"
                   />

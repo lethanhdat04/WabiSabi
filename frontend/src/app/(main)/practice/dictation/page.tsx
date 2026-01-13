@@ -1,17 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
   Play,
-  Pause,
   RotateCcw,
   Volume2,
   SkipForward,
   Check,
   X,
   RefreshCw,
+  Search,
+  Film,
 } from "lucide-react";
 import {
   Card,
@@ -20,10 +21,19 @@ import {
   Badge,
   Progress,
   Input,
+  LoadingPage,
+  ErrorPage,
+  EmptyState,
 } from "@/components/ui";
-import { mockSubtitleSegments, mockVideos } from "@/lib/mock-data";
+import {
+  videoApi,
+  dictationApi,
+  Video,
+  SubtitleSegment,
+  PageResponse,
+} from "@/lib/api-client";
 
-type PracticeState = "ready" | "playing" | "typing" | "reviewing" | "finished";
+type PracticeState = "select-video" | "ready" | "playing" | "typing" | "reviewing" | "finished";
 
 interface SegmentResult {
   segmentIndex: number;
@@ -33,47 +43,132 @@ interface SegmentResult {
 }
 
 export default function DictationPage() {
+  // Video selection state
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoadingVideos, setIsLoadingVideos] = useState(true);
+
+  // Practice state
   const [currentSegment, setCurrentSegment] = useState(0);
-  const [practiceState, setPracticeState] = useState<PracticeState>("ready");
+  const [practiceState, setPracticeState] = useState<PracticeState>("select-video");
   const [userInput, setUserInput] = useState("");
   const [results, setResults] = useState<SegmentResult[]>([]);
   const [currentResult, setCurrentResult] = useState<SegmentResult | null>(null);
   const [playCount, setPlayCount] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const segments = mockSubtitleSegments;
+  // Audio ref for playing video segments
+  const playerRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    async function fetchVideos() {
+      setIsLoadingVideos(true);
+      try {
+        const response = await videoApi.getAll({ size: 50 });
+        // Only show videos that have subtitles
+        const videosWithSubtitles = response.content.filter(
+          (v) => v.subtitles && v.subtitles.length > 0
+        );
+        setVideos(videosWithSubtitles);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load videos");
+      } finally {
+        setIsLoadingVideos(false);
+      }
+    }
+    fetchVideos();
+  }, []);
+
+  const segments = selectedVideo?.subtitles || [];
   const segment = segments[currentSegment];
-  const video = mockVideos[0];
-  const progress = ((currentSegment + 1) / segments.length) * 100;
+  const progress = segments.length > 0 ? ((currentSegment + 1) / segments.length) * 100 : 0;
 
-  const playAudio = () => {
-    setPracticeState("playing");
-    setPlayCount(playCount + 1);
-    // Simulate audio playback
-    setTimeout(() => {
-      setPracticeState("typing");
-    }, 2000);
+  const filteredVideos = videos.filter(
+    (video) =>
+      video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      video.titleJapanese.includes(searchQuery)
+  );
+
+  const selectVideo = (video: Video) => {
+    setSelectedVideo(video);
+    setCurrentSegment(0);
+    setResults([]);
+    setCurrentResult(null);
+    setUserInput("");
+    setPlayCount(0);
+    setPracticeState("ready");
   };
 
-  const checkAnswer = () => {
-    const accuracy = calculateAccuracy(userInput, segment.japaneseText);
-    const result: SegmentResult = {
-      segmentIndex: currentSegment,
-      userInput: userInput,
-      correctText: segment.japaneseText,
-      accuracyScore: accuracy,
-    };
-    setCurrentResult(result);
-    setPracticeState("reviewing");
+  const playAudio = () => {
+    if (!selectedVideo || !segment) return;
+
+    setPracticeState("playing");
+    setPlayCount(playCount + 1);
+
+    // Play segment using YouTube iframe API
+    if (playerRef.current) {
+      const startTime = segment.startTime;
+      const endTime = segment.endTime;
+      playerRef.current.src = `https://www.youtube.com/embed/${selectedVideo.youtubeId}?start=${Math.floor(startTime)}&end=${Math.floor(endTime)}&autoplay=1&enablejsapi=1`;
+    }
+
+    // Auto transition to typing after segment duration
+    const duration = (segment.endTime - segment.startTime) * 1000 + 500;
+    setTimeout(() => {
+      setPracticeState("typing");
+    }, duration);
+  };
+
+  const checkAnswer = async () => {
+    if (!segment || !selectedVideo || isSubmitting) return;
+
+    setIsSubmitting(true);
+
+    try {
+      // Submit to backend
+      const response = await dictationApi.submitAttempt({
+        videoId: selectedVideo.id,
+        segmentIndex: currentSegment,
+        userInputText: userInput.trim(),
+      });
+
+      const result: SegmentResult = {
+        segmentIndex: currentSegment,
+        userInput: userInput.trim(),
+        correctText: segment.japaneseText,
+        accuracyScore: response.evaluation?.accuracyScore ?? calculateAccuracy(userInput, segment.japaneseText),
+      };
+
+      setCurrentResult(result);
+      setResults([...results, result]);
+      setPracticeState("reviewing");
+    } catch (err) {
+      console.error("Failed to submit answer:", err);
+      // Fallback to local calculation
+      const accuracy = calculateAccuracy(userInput, segment.japaneseText);
+      const result: SegmentResult = {
+        segmentIndex: currentSegment,
+        userInput: userInput.trim(),
+        correctText: segment.japaneseText,
+        accuracyScore: accuracy,
+      };
+      setCurrentResult(result);
+      setResults([...results, result]);
+      setPracticeState("reviewing");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const calculateAccuracy = (input: string, correct: string): number => {
-    const normalizedInput = input.trim().toLowerCase();
-    const normalizedCorrect = correct.trim().toLowerCase();
+    const normalizedInput = input.trim();
+    const normalizedCorrect = correct.trim();
 
     if (normalizedInput === normalizedCorrect) return 100;
     if (normalizedInput.length === 0) return 0;
 
-    // Simple character-based similarity
     let matches = 0;
     const maxLen = Math.max(normalizedInput.length, normalizedCorrect.length);
 
@@ -88,7 +183,7 @@ export default function DictationPage() {
 
   const nextSegment = () => {
     if (currentResult) {
-      setResults([...results, currentResult]);
+      // Result already added in checkAnswer
     }
 
     if (currentSegment < segments.length - 1) {
@@ -111,20 +206,38 @@ export default function DictationPage() {
     setPlayCount(0);
   };
 
+  const backToVideoSelection = () => {
+    setSelectedVideo(null);
+    setPracticeState("select-video");
+    setCurrentSegment(0);
+    setResults([]);
+    setCurrentResult(null);
+    setUserInput("");
+    setPlayCount(0);
+  };
+
   const getAverageScore = () => {
-    const allResults = currentResult ? [...results, currentResult] : results;
+    const allResults = currentResult && !results.includes(currentResult)
+      ? [...results, currentResult]
+      : results;
     if (allResults.length === 0) return 0;
     return Math.round(
       allResults.reduce((acc, r) => acc + r.accuracyScore, 0) / allResults.length
     );
   };
 
-  if (practiceState === "finished") {
-    const finalResults = currentResult ? [...results, currentResult] : results;
-    const avgScore = getAverageScore();
+  if (isLoadingVideos) {
+    return <LoadingPage message="Loading videos..." />;
+  }
 
+  if (error) {
+    return <ErrorPage title="Error" message={error} />;
+  }
+
+  // Video Selection Screen
+  if (practiceState === "select-video") {
     return (
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
         <Link
           href="/practice"
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-neutral-200"
@@ -132,6 +245,86 @@ export default function DictationPage() {
           <ArrowLeft className="w-5 h-5" />
           Back to Practice
         </Link>
+
+        <div>
+          <h1 className="text-2xl font-heading font-semibold text-neutral-200">
+            Dictation Practice
+          </h1>
+          <p className="text-neutral-400 mt-1">
+            Select a video to start practicing your listening skills
+          </p>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search videos..."
+            className="pl-10"
+          />
+        </div>
+
+        {/* Video Grid */}
+        {filteredVideos.length === 0 ? (
+          <EmptyState
+            icon={<Film className="w-8 h-8 text-neutral-400" />}
+            title="No videos found"
+            description="No videos with subtitles available for practice"
+          />
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredVideos.map((video) => (
+              <Card
+                key={video.id}
+                variant="interactive"
+                className="cursor-pointer"
+                onClick={() => selectVideo(video)}
+              >
+                <CardContent className="p-0">
+                  <div className="aspect-video bg-neutral-800 rounded-t-lg overflow-hidden">
+                    <img
+                      src={video.thumbnailUrl}
+                      alt={video.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="blue">{video.level}</Badge>
+                      <Badge variant="default">{video.subtitles.length} segments</Badge>
+                    </div>
+                    <h3 className="font-medium text-neutral-200 line-clamp-1">
+                      {video.title}
+                    </h3>
+                    <p className="text-sm text-neutral-400 line-clamp-1">
+                      {video.titleJapanese}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Finished Screen
+  if (practiceState === "finished") {
+    const finalResults = results;
+    const avgScore = getAverageScore();
+
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <button
+          onClick={backToVideoSelection}
+          className="inline-flex items-center gap-2 text-neutral-400 hover:text-neutral-200"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Back to Videos
+        </button>
 
         <Card>
           <CardContent className="text-center py-8">
@@ -160,10 +353,10 @@ export default function DictationPage() {
               Dictation Complete
             </h2>
             <p className="text-neutral-400 mb-6">
-              You transcribed {segments.length} segments
+              You transcribed {segments.length} segments from "{selectedVideo?.title}"
             </p>
 
-            <div className="space-y-2 mb-6 text-left">
+            <div className="space-y-2 mb-6 text-left max-h-64 overflow-y-auto">
               {finalResults.map((result, i) => (
                 <div
                   key={i}
@@ -202,9 +395,9 @@ export default function DictationPage() {
                 <RotateCcw className="w-5 h-5" />
                 Practice Again
               </Button>
-              <Link href="/practice">
-                <Button>Done</Button>
-              </Link>
+              <Button onClick={backToVideoSelection}>
+                Choose Another Video
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -212,17 +405,31 @@ export default function DictationPage() {
     );
   }
 
+  // Practice Screen
+  if (!selectedVideo || !segment) {
+    return <ErrorPage title="Error" message="No video selected" />;
+  }
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      {/* Hidden YouTube Player */}
+      <iframe
+        ref={playerRef}
+        className="hidden"
+        width="0"
+        height="0"
+        allow="autoplay"
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
-        <Link
-          href="/practice"
+        <button
+          onClick={backToVideoSelection}
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-neutral-200"
         >
           <ArrowLeft className="w-5 h-5" />
           Back
-        </Link>
+        </button>
         <span className="text-sm text-neutral-400">
           Segment {currentSegment + 1} / {segments.length}
         </span>
@@ -237,18 +444,18 @@ export default function DictationPage() {
           <div className="flex items-center gap-4">
             <div className="w-16 h-12 bg-neutral-700 rounded-lg overflow-hidden flex-shrink-0">
               <img
-                src={video.thumbnailUrl}
-                alt={video.title}
+                src={selectedVideo.thumbnailUrl}
+                alt={selectedVideo.title}
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-medium text-neutral-200 line-clamp-1">
-                {video.title}
+                {selectedVideo.title}
               </h3>
-              <p className="text-sm text-neutral-400">{video.titleJapanese}</p>
+              <p className="text-sm text-neutral-400">{selectedVideo.titleJapanese}</p>
             </div>
-            <Badge variant="yellow">{video.level}</Badge>
+            <Badge variant="yellow">{selectedVideo.level}</Badge>
           </div>
         </CardContent>
       </Card>
@@ -308,14 +515,15 @@ export default function DictationPage() {
                     checkAnswer();
                   }
                 }}
+                disabled={isSubmitting}
               />
 
               <Button
                 onClick={checkAnswer}
-                disabled={!userInput.trim()}
+                disabled={!userInput.trim() || isSubmitting}
                 className="w-full"
               >
-                Check Answer
+                {isSubmitting ? "Checking..." : "Check Answer"}
               </Button>
             </div>
           )}
@@ -378,6 +586,9 @@ export default function DictationPage() {
                   onClick={() => {
                     setUserInput("");
                     setPlayCount(0);
+                    setCurrentResult(null);
+                    // Remove the last result since we're retrying
+                    setResults(results.slice(0, -1));
                     setPracticeState("ready");
                   }}
                   className="flex-1"
@@ -405,12 +616,12 @@ export default function DictationPage() {
       </Card>
 
       {/* Segment indicators */}
-      <div className="flex justify-center gap-2">
+      <div className="flex justify-center gap-2 flex-wrap">
         {segments.map((_, i) => (
           <div
             key={i}
             className={`w-2 h-2 rounded-full ${
-              i < currentSegment
+              i < results.length
                 ? results[i]?.accuracyScore >= 70
                   ? "bg-green-500"
                   : "bg-yellow-500"
