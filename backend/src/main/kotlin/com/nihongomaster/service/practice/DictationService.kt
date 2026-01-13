@@ -8,6 +8,9 @@ import com.nihongomaster.exception.BadRequestException
 import com.nihongomaster.exception.ResourceNotFoundException
 import com.nihongomaster.repository.DictationAttemptRepository
 import com.nihongomaster.repository.VideoRepository
+import com.nihongomaster.service.user.PracticeActivityType
+import com.nihongomaster.service.user.ProgressUpdateRequest
+import com.nihongomaster.service.user.UserService
 import com.nihongomaster.service.video.PracticeType
 import com.nihongomaster.service.video.VideoService
 import mu.KotlinLogging
@@ -37,7 +40,8 @@ class DictationServiceImpl(
     private val videoRepository: VideoRepository,
     private val videoService: VideoService,
     private val mockAIService: MockAIService,
-    private val dictationMapper: DictationMapper
+    private val dictationMapper: DictationMapper,
+    private val userService: UserService
 ) : DictationService {
 
     /**
@@ -78,6 +82,18 @@ class DictationServiceImpl(
 
         // Update video practice count
         videoService.incrementPracticeCount(request.videoId, PracticeType.DICTATION)
+
+        // Update user progress
+        val xpEarned = calculateXP(evaluation.overallScore)
+        userService.updateProgress(
+            userId = userId,
+            request = ProgressUpdateRequest(
+                activityType = PracticeActivityType.DICTATION,
+                xpEarned = xpEarned,
+                scoreEarned = evaluation.overallScore,
+                practiceMinutes = 1  // Estimate 1 minute per segment
+            )
+        )
 
         return dictationMapper.toResponse(savedAttempt)
     }
@@ -217,5 +233,18 @@ class DictationServiceImpl(
 
     private fun roundScore(score: Double): Double {
         return (score * 10).toInt() / 10.0
+    }
+
+    /**
+     * Calculate XP based on score.
+     */
+    private fun calculateXP(score: Double): Long {
+        return when {
+            score >= 95 -> 20L
+            score >= 80 -> 15L
+            score >= 60 -> 10L
+            score >= 40 -> 5L
+            else -> 2L
+        }
     }
 }

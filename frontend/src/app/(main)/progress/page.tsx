@@ -174,7 +174,7 @@ export default function ProgressPage() {
                   <Award className="w-5 h-5 text-green-500" />
                 </div>
                 <p className="text-2xl font-heading font-semibold text-neutral-200">
-                  {user.progress?.maxStreak || 0}
+                  {user.progress?.longestStreak || 0}
                 </p>
                 <p className="text-sm text-neutral-400">Max Streak</p>
               </CardContent>
@@ -185,7 +185,7 @@ export default function ProgressPage() {
                   <BookOpen className="w-5 h-5 text-blue-500" />
                 </div>
                 <p className="text-2xl font-heading font-semibold text-neutral-200">
-                  {user.progress?.vocabMastered || 0}
+                  {user.progress?.totalVocabMastered || 0}
                 </p>
                 <p className="text-sm text-neutral-400">Words Mastered</p>
               </CardContent>
@@ -353,13 +353,13 @@ export default function ProgressPage() {
                 <div className="p-4 bg-neutral-900 border border-neutral-700 rounded-lg">
                   <p className="text-sm text-neutral-400 mb-1">Videos Completed</p>
                   <p className="text-2xl font-heading font-semibold text-neutral-200">
-                    {user.progress?.videosCompleted || 0}
+                    {user.progress?.totalVideosCompleted || 0}
                   </p>
                 </div>
                 <div className="p-4 bg-neutral-900 border border-neutral-700 rounded-lg">
                   <p className="text-sm text-neutral-400 mb-1">Vocabulary Mastered</p>
                   <p className="text-2xl font-heading font-semibold text-neutral-200">
-                    {user.progress?.vocabMastered || 0}
+                    {user.progress?.totalVocabMastered || 0}
                   </p>
                 </div>
               </div>

@@ -7,6 +7,9 @@ import com.nihongomaster.exception.ResourceNotFoundException
 import com.nihongomaster.mapper.VocabularyMapper
 import com.nihongomaster.repository.VocabularyDeckRepository
 import com.nihongomaster.repository.VocabularyProgressRepository
+import com.nihongomaster.service.user.PracticeActivityType
+import com.nihongomaster.service.user.ProgressUpdateRequest
+import com.nihongomaster.service.user.UserService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -24,7 +27,8 @@ class VocabularyPracticeService(
     private val deckRepository: VocabularyDeckRepository,
     private val progressRepository: VocabularyProgressRepository,
     private val deckService: DeckService,
-    private val mapper: VocabularyMapper
+    private val mapper: VocabularyMapper,
+    private val userService: UserService
 ) {
     private val logger = LoggerFactory.getLogger(VocabularyPracticeService::class.java)
 
@@ -122,6 +126,19 @@ class VocabularyPracticeService(
         logger.info("Fill-in answer submitted: user=$userId, deck=${request.deckId}, " +
                 "correct=$isCorrect, similarity=$similarity")
 
+        // Update user progress
+        val isMastered = itemProgress?.masteryLevel == MasteryLevel.FAMILIAR ||
+                         itemProgress?.masteryLevel == MasteryLevel.MASTERED
+        userService.updateProgress(
+            userId = userId,
+            request = ProgressUpdateRequest(
+                activityType = PracticeActivityType.VOCABULARY,
+                xpEarned = pointsEarned.toLong(),
+                scoreEarned = similarity * 100,
+                vocabMastered = if (isMastered && itemProgress?.totalAttempts == 1) 1 else 0
+            )
+        )
+
         return FillInAnswerResponse(
             isCorrect = isCorrect,
             userAnswer = request.userAnswer,
@@ -213,6 +230,25 @@ class VocabularyPracticeService(
 
         logger.info("Flashcard result submitted: user=$userId, deck=${request.deckId}, " +
                 "result=${request.result}")
+
+        // Update user progress
+        val isMastered = itemProgress?.masteryLevel == MasteryLevel.FAMILIAR ||
+                         itemProgress?.masteryLevel == MasteryLevel.MASTERED
+        val scoreEarned = when (request.result) {
+            FlashcardSelfAssessment.EASY -> 100.0
+            FlashcardSelfAssessment.GOOD -> 80.0
+            FlashcardSelfAssessment.HARD -> 50.0
+            FlashcardSelfAssessment.FORGOT -> 20.0
+        }
+        userService.updateProgress(
+            userId = userId,
+            request = ProgressUpdateRequest(
+                activityType = PracticeActivityType.VOCABULARY,
+                xpEarned = pointsEarned.toLong(),
+                scoreEarned = scoreEarned,
+                vocabMastered = if (isMastered && itemProgress?.totalAttempts == 1) 1 else 0
+            )
+        )
 
         return FlashcardResultResponse(
             recorded = true,

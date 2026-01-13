@@ -224,10 +224,10 @@ export interface UserProgress {
   vocabularyScore: number;
   totalXP: number;
   streak: number;
-  maxStreak: number;
+  longestStreak: number;
   totalPracticeMinutes: number;
-  videosCompleted: number;
-  vocabMastered: number;
+  totalVideosCompleted: number;
+  totalVocabMastered: number;
 }
 
 export const userApi = {

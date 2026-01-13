@@ -196,7 +196,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <p className="text-2xl font-heading font-semibold text-neutral-200">
-                {user.progress?.vocabMastered || 0}
+                {user.progress?.totalVocabMastered || 0}
               </p>
               <p className="text-sm text-neutral-400">Words Learned</p>
             </div>
@@ -210,7 +210,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <p className="text-2xl font-heading font-semibold text-neutral-200">
-                {user.progress?.videosCompleted || 0}
+                {user.progress?.totalVideosCompleted || 0}
               </p>
               <p className="text-sm text-neutral-400">Videos Watched</p>
             </div>
@@ -268,7 +268,7 @@ export default function ProfilePage() {
                     <span className="text-neutral-200">Max Streak</span>
                   </div>
                   <span className="text-neutral-200 font-medium">
-                    {user.progress?.maxStreak || 0} days
+                    {user.progress?.longestStreak || 0} days
                   </span>
                 </div>
 
@@ -321,14 +321,14 @@ export default function ProfilePage() {
               <div className="p-4 bg-neutral-900 border border-neutral-700 rounded-lg">
                 <p className="text-sm text-neutral-400 mb-1">Vocabulary Mastered</p>
                 <p className="text-2xl font-heading font-semibold text-neutral-200">
-                  {user.progress?.vocabMastered || 0} words
+                  {user.progress?.totalVocabMastered || 0} words
                 </p>
               </div>
 
               <div className="p-4 bg-neutral-900 border border-neutral-700 rounded-lg">
                 <p className="text-sm text-neutral-400 mb-1">Videos Completed</p>
                 <p className="text-2xl font-heading font-semibold text-neutral-200">
-                  {user.progress?.videosCompleted || 0} videos
+                  {user.progress?.totalVideosCompleted || 0} videos
                 </p>
               </div>
 
