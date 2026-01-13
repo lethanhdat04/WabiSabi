@@ -45,9 +45,10 @@ export default function DecksPage() {
       setIsLoading(true);
       setError(null);
       try {
+        const emptyPage = { content: [], totalElements: 0, totalPages: 0, size: 0, number: 0, first: true, last: true };
         const [allDecksRes, myDecksRes] = await Promise.all([
-          deckApi.getAll({ size: 50 }).catch(() => ({ content: [] } as PageResponse<VocabularyDeck>)),
-          deckApi.getMyDecks(0, 50).catch(() => ({ content: [] } as PageResponse<VocabularyDeck>)),
+          deckApi.getAll({ size: 50 }).catch(() => emptyPage),
+          deckApi.getMyDecks(0, 50).catch(() => emptyPage),
         ]);
         setDecks(allDecksRes.content || []);
         setMyDecks(myDecksRes.content || []);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -20,106 +20,123 @@ import {
   Badge,
   Progress,
   Input,
+  LoadingPage,
+  ErrorPage,
 } from "@/components/ui";
-
-interface QuizQuestion {
-  id: string;
-  type: "meaning_to_japanese" | "japanese_to_meaning" | "listening";
-  prompt: string;
-  answer: string;
-  hint: string;
-  japanese: string;
-  reading: string;
-}
-
-const mockQuestions: QuizQuestion[] = [
-  {
-    id: "q1",
-    type: "meaning_to_japanese",
-    prompt: "To eat",
-    answer: "食べる",
-    hint: "た",
-    japanese: "食べる",
-    reading: "taberu",
-  },
-  {
-    id: "q2",
-    type: "japanese_to_meaning",
-    prompt: "飲む (nomu)",
-    answer: "To drink",
-    hint: "T",
-    japanese: "飲む",
-    reading: "nomu",
-  },
-  {
-    id: "q3",
-    type: "listening",
-    prompt: "Listen and type what you hear",
-    answer: "大きい",
-    hint: "お",
-    japanese: "大きい",
-    reading: "ookii",
-  },
-  {
-    id: "q4",
-    type: "meaning_to_japanese",
-    prompt: "Today",
-    answer: "今日",
-    hint: "き",
-    japanese: "今日",
-    reading: "kyou",
-  },
-  {
-    id: "q5",
-    type: "japanese_to_meaning",
-    prompt: "新しい (atarashii)",
-    answer: "New",
-    hint: "N",
-    japanese: "新しい",
-    reading: "atarashii",
-  },
-];
-
-const mockDeckInfo = {
-  id: "d1",
-  name: "JLPT N5 Vocabulary",
-  level: "N5",
-};
+import {
+  deckApi,
+  practiceApi,
+  VocabularyDeck,
+  FillInQuestion,
+} from "@/lib/api-client";
+import { getLevelColor } from "@/lib/hooks";
 
 interface QuizResult {
   questionId: string;
   userAnswer: string;
   isCorrect: boolean;
+  correctAnswer: string;
+  feedback: string;
 }
 
 export default function DeckQuizPage() {
   const params = useParams();
+  const deckId = params.deckId as string;
+
+  const [deck, setDeck] = useState<VocabularyDeck | null>(null);
+  const [questions, setQuestions] = useState<FillInQuestion[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState("");
   const [showResult, setShowResult] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [results, setResults] = useState<QuizResult[]>([]);
   const [isFinished, setIsFinished] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentResult, setCurrentResult] = useState<QuizResult | null>(null);
 
-  const questions = mockQuestions;
-  const deck = mockDeckInfo;
+  useEffect(() => {
+    async function fetchData() {
+      if (!deckId) return;
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const [deckData, questionsData] = await Promise.all([
+          deckApi.getSummary(deckId),
+          practiceApi.getFillInQuestions({
+            deckId,
+            itemCount: 10,
+          }),
+        ]);
+
+        setDeck(deckData);
+        setQuestions(questionsData);
+
+        if (questionsData.length === 0) {
+          setError("No quiz questions available in this deck");
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load quiz");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [deckId]);
+
   const currentQuestion = questions[currentIndex];
-  const progress = ((currentIndex + 1) / questions.length) * 100;
+  const progress = questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0;
 
-  const checkAnswer = () => {
-    const isCorrect =
-      userAnswer.toLowerCase().trim() ===
-      currentQuestion.answer.toLowerCase().trim();
+  const checkAnswer = async () => {
+    if (!currentQuestion || isSubmitting) return;
 
-    setResults([
-      ...results,
-      {
-        questionId: currentQuestion.id,
-        userAnswer: userAnswer,
+    setIsSubmitting(true);
+
+    try {
+      const response = await practiceApi.submitFillInAnswer({
+        deckId,
+        sectionIndex: currentQuestion.sectionIndex,
+        itemIndex: currentQuestion.itemIndex,
+        userAnswer: userAnswer.trim(),
+        questionType: currentQuestion.questionType,
+      });
+
+      const result: QuizResult = {
+        questionId: currentQuestion.questionId,
+        userAnswer: userAnswer.trim(),
+        isCorrect: response.isCorrect,
+        correctAnswer: response.correctAnswer,
+        feedback: response.feedback,
+      };
+
+      setCurrentResult(result);
+      setResults([...results, result]);
+      setShowResult(true);
+    } catch (err) {
+      console.error("Failed to submit answer:", err);
+      // Fallback to local comparison if API fails
+      const isCorrect =
+        userAnswer.toLowerCase().trim() === currentQuestion.prompt.toLowerCase().trim();
+
+      const result: QuizResult = {
+        questionId: currentQuestion.questionId,
+        userAnswer: userAnswer.trim(),
         isCorrect,
-      },
-    ]);
-    setShowResult(true);
+        correctAnswer: currentQuestion.prompt,
+        feedback: isCorrect ? "Correct!" : "Incorrect",
+      };
+
+      setCurrentResult(result);
+      setResults([...results, result]);
+      setShowResult(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const nextQuestion = () => {
@@ -128,33 +145,50 @@ export default function DeckQuizPage() {
       setUserAnswer("");
       setShowResult(false);
       setShowHint(false);
+      setCurrentResult(null);
     } else {
       setIsFinished(true);
     }
   };
 
-  const resetQuiz = () => {
-    setCurrentIndex(0);
-    setUserAnswer("");
-    setShowResult(false);
-    setShowHint(false);
-    setResults([]);
-    setIsFinished(false);
+  const resetQuiz = async () => {
+    setIsLoading(true);
+    try {
+      const questionsData = await practiceApi.getFillInQuestions({
+        deckId,
+        itemCount: 10,
+      });
+      setQuestions(questionsData);
+      setCurrentIndex(0);
+      setUserAnswer("");
+      setShowResult(false);
+      setShowHint(false);
+      setResults([]);
+      setIsFinished(false);
+      setCurrentResult(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to reload quiz");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getScore = () => {
+    if (results.length === 0) return 0;
     const correct = results.filter((r) => r.isCorrect).length;
     return Math.round((correct / results.length) * 100);
   };
 
   const getQuestionTypeLabel = (type: string) => {
     switch (type) {
-      case "meaning_to_japanese":
+      case "MEANING_TO_JAPANESE":
         return "Type in Japanese";
-      case "japanese_to_meaning":
+      case "JAPANESE_TO_MEANING":
         return "Type the Meaning";
-      case "listening":
-        return "Listening";
+      case "READING_TO_JAPANESE":
+        return "Type the Kanji";
+      case "JAPANESE_TO_READING":
+        return "Type the Reading";
       default:
         return "Quiz";
     }
@@ -162,16 +196,31 @@ export default function DeckQuizPage() {
 
   const getQuestionTypeColor = (type: string) => {
     switch (type) {
-      case "meaning_to_japanese":
+      case "MEANING_TO_JAPANESE":
         return "yellow";
-      case "japanese_to_meaning":
+      case "JAPANESE_TO_MEANING":
         return "blue";
-      case "listening":
+      case "READING_TO_JAPANESE":
         return "green";
+      case "JAPANESE_TO_READING":
+        return "default";
       default:
         return "default";
     }
   };
+
+  if (isLoading) {
+    return <LoadingPage message="Loading quiz..." />;
+  }
+
+  if (error || !deck) {
+    return (
+      <ErrorPage
+        title="Error loading quiz"
+        message={error || "Deck not found"}
+      />
+    );
+  }
 
   if (isFinished) {
     const score = getScore();
@@ -180,7 +229,7 @@ export default function DeckQuizPage() {
     return (
       <div className="max-w-2xl mx-auto space-y-6">
         <Link
-          href={`/decks/${params.deckId}`}
+          href={`/decks/${deckId}`}
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-neutral-200"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -222,7 +271,7 @@ export default function DeckQuizPage() {
             </p>
 
             {/* Results breakdown */}
-            <div className="space-y-2 mb-6 text-left">
+            <div className="space-y-2 mb-6 text-left max-h-64 overflow-y-auto">
               {results.map((result, i) => {
                 const question = questions[i];
                 return (
@@ -236,7 +285,7 @@ export default function DeckQuizPage() {
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm text-neutral-400">
-                        {question.japanese} ({question.reading})
+                        {question?.prompt}
                       </span>
                       {result.isCorrect ? (
                         <Check className="w-4 h-4 text-green-500" />
@@ -250,7 +299,7 @@ export default function DeckQuizPage() {
                           Your answer: {result.userAnswer || "(empty)"}
                         </p>
                         <p className="text-neutral-200">
-                          Correct: {question.answer}
+                          Correct: {result.correctAnswer}
                         </p>
                       </div>
                     )}
@@ -264,7 +313,7 @@ export default function DeckQuizPage() {
                 <RotateCcw className="w-5 h-5" />
                 Try Again
               </Button>
-              <Link href={`/decks/${params.deckId}`}>
+              <Link href={`/decks/${deckId}`}>
                 <Button>Done</Button>
               </Link>
             </div>
@@ -274,23 +323,28 @@ export default function DeckQuizPage() {
     );
   }
 
-  const currentResult = showResult
-    ? results[results.length - 1]
-    : null;
+  if (!currentQuestion) {
+    return (
+      <ErrorPage
+        title="No questions"
+        message="This deck doesn't have any quiz questions yet"
+      />
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <Link
-          href={`/decks/${params.deckId}`}
+          href={`/decks/${deckId}`}
           className="inline-flex items-center gap-2 text-neutral-400 hover:text-neutral-200"
         >
           <ArrowLeft className="w-5 h-5" />
           Back
         </Link>
         <div className="flex items-center gap-3">
-          <Badge variant="yellow">{deck.level}</Badge>
+          <Badge variant={getLevelColor(deck.level) as any}>{deck.level}</Badge>
           <span className="text-sm text-neutral-400">
             {currentIndex + 1} / {questions.length}
           </span>
@@ -306,7 +360,7 @@ export default function DeckQuizPage() {
           <Layers className="w-5 h-5 text-yellow-500" />
         </div>
         <div>
-          <p className="font-medium text-neutral-200">{deck.name}</p>
+          <p className="font-medium text-neutral-200">{deck.title}</p>
           <p className="text-sm text-neutral-400">Vocabulary Quiz</p>
         </div>
       </div>
@@ -315,63 +369,81 @@ export default function DeckQuizPage() {
       <Card>
         <CardContent className="py-8">
           <Badge
-            variant={getQuestionTypeColor(currentQuestion.type) as any}
+            variant={getQuestionTypeColor(currentQuestion.questionType) as any}
             className="mb-4"
           >
-            {getQuestionTypeLabel(currentQuestion.type)}
+            {getQuestionTypeLabel(currentQuestion.questionType)}
           </Badge>
 
-          {currentQuestion.type === "listening" && (
-            <div className="flex justify-center mb-6">
-              <button className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center hover:bg-green-500/20 transition-colors">
-                <Volume2 className="w-8 h-8 text-green-500" />
-              </button>
-            </div>
-          )}
-
           <h2 className="text-xl font-heading font-semibold text-neutral-200 mb-6 text-center">
-            {currentQuestion.type === "listening"
-              ? "Listen and type what you hear"
-              : currentQuestion.prompt}
+            {currentQuestion.prompt}
           </h2>
 
           {!showResult ? (
             <div className="space-y-4">
-              <div className="relative">
-                <Keyboard className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
-                <Input
-                  value={userAnswer}
-                  onChange={(e) => setUserAnswer(e.target.value)}
-                  placeholder={
-                    currentQuestion.type === "meaning_to_japanese"
-                      ? "Type in Japanese..."
-                      : "Type your answer..."
-                  }
-                  className="pl-10 text-lg"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && userAnswer.trim()) {
-                      checkAnswer();
-                    }
-                  }}
-                />
-              </div>
+              {currentQuestion.options && currentQuestion.options.length > 0 ? (
+                // Multiple choice
+                <div className="grid grid-cols-2 gap-3">
+                  {currentQuestion.options.map((option, idx) => (
+                    <Button
+                      key={idx}
+                      variant="secondary"
+                      className="h-auto py-4 text-left justify-start"
+                      onClick={() => {
+                        setUserAnswer(option);
+                        setTimeout(() => checkAnswer(), 100);
+                      }}
+                      disabled={isSubmitting}
+                    >
+                      {option}
+                    </Button>
+                  ))}
+                </div>
+              ) : (
+                // Free form input
+                <>
+                  <div className="relative">
+                    <Keyboard className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
+                    <Input
+                      value={userAnswer}
+                      onChange={(e) => setUserAnswer(e.target.value)}
+                      placeholder={
+                        currentQuestion.questionType === "MEANING_TO_JAPANESE" ||
+                        currentQuestion.questionType === "READING_TO_JAPANESE"
+                          ? "Type in Japanese..."
+                          : "Type your answer..."
+                      }
+                      className="pl-10 text-lg"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && userAnswer.trim()) {
+                          checkAnswer();
+                        }
+                      }}
+                      disabled={isSubmitting}
+                    />
+                  </div>
 
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => setShowHint(true)}
-                  className="flex items-center gap-2 text-sm text-neutral-400 hover:text-neutral-200"
-                  disabled={showHint}
-                >
-                  <HelpCircle className="w-4 h-4" />
-                  {showHint
-                    ? `Hint: starts with "${currentQuestion.hint}"`
-                    : "Show hint"}
-                </button>
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => setShowHint(true)}
+                      className="flex items-center gap-2 text-sm text-neutral-400 hover:text-neutral-200"
+                      disabled={showHint}
+                    >
+                      <HelpCircle className="w-4 h-4" />
+                      {showHint && currentQuestion.hint
+                        ? `Hint: starts with "${currentQuestion.hint}"`
+                        : "Show hint"}
+                    </button>
 
-                <Button onClick={checkAnswer} disabled={!userAnswer.trim()}>
-                  Check Answer
-                </Button>
-              </div>
+                    <Button
+                      onClick={checkAnswer}
+                      disabled={!userAnswer.trim() || isSubmitting}
+                    >
+                      {isSubmitting ? "Checking..." : "Check Answer"}
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
@@ -401,22 +473,18 @@ export default function DeckQuizPage() {
                 {!currentResult?.isCorrect && (
                   <div className="text-sm">
                     <p className="text-neutral-400">
-                      Your answer: {userAnswer}
+                      Your answer: {currentResult?.userAnswer || "(empty)"}
                     </p>
                     <p className="text-neutral-200">
-                      Correct answer: {currentQuestion.answer}
+                      Correct answer: {currentResult?.correctAnswer}
                     </p>
                   </div>
                 )}
-              </div>
-
-              <div className="p-4 bg-neutral-900 border border-neutral-700 rounded-lg">
-                <p className="text-lg text-neutral-200 mb-1">
-                  {currentQuestion.japanese}
-                </p>
-                <p className="text-sm text-neutral-400">
-                  {currentQuestion.reading}
-                </p>
+                {currentResult?.feedback && (
+                  <p className="text-sm text-neutral-400 mt-2">
+                    {currentResult.feedback}
+                  </p>
+                )}
               </div>
 
               <Button onClick={nextQuestion} className="w-full">
@@ -430,7 +498,7 @@ export default function DeckQuizPage() {
       </Card>
 
       {/* Progress indicators */}
-      <div className="flex justify-center gap-2">
+      <div className="flex justify-center gap-2 flex-wrap">
         {questions.map((_, i) => (
           <div
             key={i}
