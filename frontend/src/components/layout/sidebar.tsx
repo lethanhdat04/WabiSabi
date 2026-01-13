@@ -7,14 +7,11 @@ import {
   BookOpen,
   Video,
   Layers,
-  Mic,
-  PenTool,
   BarChart3,
   Settings,
   HelpCircle,
   X,
   Flame,
-  Target,
   MessageSquare,
   User,
   Clock,
@@ -26,14 +23,6 @@ const learnItems = [
   { href: "/learn", label: "Overview", icon: BookOpen },
   { href: "/learn/videos", label: "Video Library", icon: Video },
   { href: "/decks", label: "Vocabulary Decks", icon: Layers },
-];
-
-const practiceItems = [
-  { href: "/practice", label: "Overview", icon: Target },
-  { href: "/practice/shadowing", label: "Shadowing", icon: Mic },
-  { href: "/practice/dictation", label: "Dictation", icon: PenTool },
-  { href: "/practice/flashcards", label: "Flashcards", icon: Layers },
-  { href: "/practice/fill-in", label: "Fill-in-the-Blank", icon: PenTool },
 ];
 
 const communityItems = [
@@ -108,34 +97,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   Learn
                 </p>
                 {learnItems.map((item) => {
-                  const isActive = pathname === item.href;
-                  const Icon = item.icon;
-
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={onClose}
-                      className={clsx(
-                        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors mb-1",
-                        isActive
-                          ? "bg-yellow-500/10 text-yellow-500"
-                          : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800"
-                      )}
-                    >
-                      <Icon className="w-5 h-5" />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
-
-              <div className="mb-4">
-                <p className="px-3 mb-2 text-xs font-medium text-neutral-400 uppercase tracking-wider">
-                  Practice
-                </p>
-                {practiceItems.map((item) => {
-                  const isActive = pathname === item.href;
+                  const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
                   const Icon = item.icon;
 
                   return (

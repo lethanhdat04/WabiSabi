@@ -22,7 +22,7 @@ import { useAuth } from "@/lib/auth-context";
 
 const navItems = [
   { href: "/learn", label: "Learn", icon: BookOpen },
-  { href: "/practice", label: "Practice", icon: GraduationCap },
+  { href: "/decks", label: "Vocabulary", icon: GraduationCap },
   { href: "/community", label: "Community", icon: Users },
 ];
 

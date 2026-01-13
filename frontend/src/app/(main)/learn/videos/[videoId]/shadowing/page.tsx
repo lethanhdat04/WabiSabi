@@ -9,7 +9,7 @@ import {
   Pause,
   Volume2,
   Mic,
-  PenTool,
+  MicOff,
   SkipBack,
   SkipForward,
   Settings,
@@ -17,13 +17,11 @@ import {
   Minimize2,
   Check,
   ChevronDown,
-  Edit3,
-  AlertCircle,
+  RotateCcw,
   BookOpen,
   Clock,
   Star,
   Eye,
-  Loader2,
   Video,
 } from "lucide-react";
 import {
@@ -31,15 +29,13 @@ import {
   CardContent,
   Button,
   Badge,
+  Progress,
   LoadingSpinner,
 } from "@/components/ui";
 import { useYouTubePlayer, PlayerState } from "@/lib/use-youtube-player";
 import { formatDuration, getLevelColor } from "@/lib/mock-data";
 import { videoApi, Video as VideoType, VocabularyReference } from "@/lib/api-client";
 import { clsx } from "clsx";
-
-// Local type aliases for convenience
-type VocabularyWord = VocabularyReference;
 
 interface SubtitleSegment {
   index: number;
@@ -49,13 +45,19 @@ interface SubtitleSegment {
   startTime: number;
   endTime: number;
   duration?: number;
-  vocabulary?: VocabularyWord[];
+  vocabulary?: VocabularyReference[];
+}
+
+interface ShadowingState {
+  hasRecorded: boolean;
+  recordingCount: number;
+  score: number | null;
 }
 
 // Playback speed options
 const playbackSpeeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-export default function VideoPlayerPage() {
+export default function ShadowingPage() {
   const params = useParams();
   const router = useRouter();
   const videoId = params.videoId as string;
@@ -66,15 +68,21 @@ export default function VideoPlayerPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Player state
-  const [autoStop, setAutoStop] = useState(false);
+  const [autoStop, setAutoStop] = useState(true);
   const [isLargeVideo, setIsLargeVideo] = useState(false);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
-  const [activeSubtitleIndex, setActiveSubtitleIndex] = useState<number | null>(
-    null
-  );
-  const [selectedVocabulary, setSelectedVocabulary] =
-    useState<VocabularyWord | null>(null);
+  const [activeSubtitleIndex, setActiveSubtitleIndex] = useState<number | null>(null);
   const [showVideoThumbnail, setShowVideoThumbnail] = useState(true);
+
+  // Shadowing state
+  const [isRecording, setIsRecording] = useState(false);
+  const [shadowingStates, setShadowingStates] = useState<Map<number, ShadowingState>>(new Map());
+  const [currentRecordingTime, setCurrentRecordingTime] = useState(0);
+
+  // Audio recording refs
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Refs
   const transcriptRef = useRef<HTMLDivElement>(null);
@@ -88,6 +96,17 @@ export default function VideoPlayerPage() {
         setError(null);
         const data = await videoApi.getById(videoId);
         setVideo(data);
+
+        // Initialize shadowing states for all subtitles
+        const initialStates = new Map<number, ShadowingState>();
+        data.subtitles?.forEach((_, index) => {
+          initialStates.set(index, {
+            hasRecorded: false,
+            recordingCount: 0,
+            score: null,
+          });
+        });
+        setShadowingStates(initialStates);
       } catch (err: any) {
         console.error("Failed to fetch video:", err);
         if (err.status === 404) {
@@ -105,7 +124,7 @@ export default function VideoPlayerPage() {
     }
   }, [videoId]);
 
-  // Get subtitles from video (with safe fallback)
+  // Get subtitles from video
   const subtitles: SubtitleSegment[] = video?.subtitles ?? [];
 
   // Find current subtitle based on time
@@ -150,7 +169,7 @@ export default function VideoPlayerPage() {
     }
   }, []);
 
-  // Initialize YouTube player (only when video is loaded)
+  // Initialize YouTube player
   const player = useYouTubePlayer("youtube-player", {
     videoId: video?.youtubeId ?? "",
     onTimeUpdate: handleTimeUpdate,
@@ -171,58 +190,6 @@ export default function VideoPlayerPage() {
       }
     }
   }, [activeSubtitleIndex]);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    if (!video) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if typing in an input
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
-        return;
-      }
-
-      switch (e.code) {
-        case "Space":
-          e.preventDefault();
-          if (player.playerState === "playing") {
-            player.pause();
-          } else {
-            player.play();
-          }
-          break;
-        case "ArrowLeft":
-          e.preventDefault();
-          player.seekTo(Math.max(0, player.currentTime - 5));
-          break;
-        case "ArrowRight":
-          e.preventDefault();
-          player.seekTo(Math.min(player.duration, player.currentTime + 5));
-          break;
-        case "ArrowUp":
-          e.preventDefault();
-          if (activeSubtitleIndex !== null && activeSubtitleIndex > 0) {
-            handleSubtitleClick(subtitles[activeSubtitleIndex - 1]);
-          }
-          break;
-        case "ArrowDown":
-          e.preventDefault();
-          if (
-            activeSubtitleIndex !== null &&
-            activeSubtitleIndex < subtitles.length - 1
-          ) {
-            handleSubtitleClick(subtitles[activeSubtitleIndex + 1]);
-          }
-          break;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [player, activeSubtitleIndex, subtitles, video]);
 
   // Handle subtitle click - seek to timestamp
   const handleSubtitleClick = (subtitle: SubtitleSegment) => {
@@ -256,17 +223,141 @@ export default function VideoPlayerPage() {
     }
   };
 
-  // Get current subtitle
+  // Update shadowing state for a subtitle
+  const updateShadowingState = (index: number, updates: Partial<ShadowingState>) => {
+    setShadowingStates((prev) => {
+      const newMap = new Map(prev);
+      const current = newMap.get(index) || {
+        hasRecorded: false,
+        recordingCount: 0,
+        score: null,
+      };
+      newMap.set(index, { ...current, ...updates });
+      return newMap;
+    });
+  };
+
+  // Start recording
+  const startRecording = async () => {
+    if (activeSubtitleIndex === null) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        stream.getTracks().forEach(track => track.stop());
+
+        // Simulate scoring (in real app, would send to backend for analysis)
+        const score = 60 + Math.random() * 35;
+        const state = shadowingStates.get(activeSubtitleIndex);
+
+        updateShadowingState(activeSubtitleIndex, {
+          hasRecorded: true,
+          recordingCount: (state?.recordingCount || 0) + 1,
+          score: Math.round(score),
+        });
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setCurrentRecordingTime(0);
+
+      // Start recording timer
+      recordingTimerRef.current = setInterval(() => {
+        setCurrentRecordingTime(t => t + 100);
+      }, 100);
+
+      // Auto stop after segment duration + buffer
+      const currentSubtitle = subtitles[activeSubtitleIndex];
+      const duration = (currentSubtitle.endTime - currentSubtitle.startTime) * 1000 + 1000;
+      setTimeout(() => {
+        if (mediaRecorder.state === 'recording') {
+          stopRecording();
+        }
+      }, duration);
+    } catch (err) {
+      console.error("Failed to start recording:", err);
+      // Simulate recording without actual audio
+      setIsRecording(true);
+      setCurrentRecordingTime(0);
+
+      recordingTimerRef.current = setInterval(() => {
+        setCurrentRecordingTime(t => t + 100);
+      }, 100);
+
+      setTimeout(() => {
+        stopRecording();
+      }, 3000);
+    }
+  };
+
+  // Stop recording
+  const stopRecording = () => {
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    } else if (activeSubtitleIndex !== null) {
+      // Fallback for simulated recording
+      const score = 60 + Math.random() * 35;
+      const state = shadowingStates.get(activeSubtitleIndex);
+
+      updateShadowingState(activeSubtitleIndex, {
+        hasRecorded: true,
+        recordingCount: (state?.recordingCount || 0) + 1,
+        score: Math.round(score),
+      });
+    }
+
+    setIsRecording(false);
+    setCurrentRecordingTime(0);
+  };
+
+  // Reset current subtitle
+  const handleReset = () => {
+    if (activeSubtitleIndex !== null) {
+      updateShadowingState(activeSubtitleIndex, {
+        hasRecorded: false,
+        recordingCount: 0,
+        score: null,
+      });
+      autoStopTriggeredRef.current.delete(activeSubtitleIndex);
+    }
+  };
+
+  // Get current subtitle and state
   const currentSubtitle =
     activeSubtitleIndex !== null && activeSubtitleIndex >= 0
       ? subtitles[activeSubtitleIndex]
       : null;
 
-  // Calculate progress
-  const progress =
-    subtitles.length > 0
-      ? ((activeSubtitleIndex ?? 0) + 1) / subtitles.length
-      : 0;
+  const currentState = activeSubtitleIndex !== null
+    ? shadowingStates.get(activeSubtitleIndex)
+    : null;
+
+  // Calculate overall progress
+  const completedCount = Array.from(shadowingStates.values()).filter(
+    (s) => s.hasRecorded && (s.score ?? 0) >= 70
+  ).length;
+  const overallProgress = subtitles.length > 0 ? completedCount / subtitles.length : 0;
+
+  // Get average score
+  const scores = Array.from(shadowingStates.values())
+    .filter(s => s.score !== null)
+    .map(s => s.score!);
+  const averageScore = scores.length > 0
+    ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+    : 0;
 
   // Loading state
   if (isLoading) {
@@ -322,12 +413,22 @@ export default function VideoPlayerPage() {
     <div className="max-w-7xl mx-auto space-y-4">
       {/* Back Navigation */}
       <Link
-        href="/learn/videos"
+        href={`/learn/videos/${videoId}`}
         className="inline-flex items-center gap-2 text-neutral-400 hover:text-neutral-200 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span>Back to Videos</span>
+        <span>Back to Video</span>
       </Link>
+
+      {/* Mode Badge */}
+      <div className="flex items-center gap-2">
+        <Badge variant="yellow" className="text-sm">
+          Shadowing Mode
+        </Badge>
+        <span className="text-sm text-neutral-400">
+          Listen and repeat after the speaker
+        </span>
+      </div>
 
       {/* Main Content - Split Layout */}
       <div
@@ -355,7 +456,6 @@ export default function VideoPlayerPage() {
                 <Badge variant={getLevelColor(video.level) as any}>
                   {video.level}
                 </Badge>
-                {video.isOfficial && <Badge variant="yellow">Official</Badge>}
               </div>
             </div>
             <div className="flex items-center gap-4 mt-2 text-sm text-neutral-400">
@@ -365,7 +465,7 @@ export default function VideoPlayerPage() {
               </span>
               <span className="flex items-center gap-1">
                 <Star className="w-4 h-4 text-yellow-500" />
-                {video.stats.averageRating.toFixed(1)} ({video.stats.totalRatings})
+                {video.stats.averageRating.toFixed(1)}
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
@@ -412,25 +512,19 @@ export default function VideoPlayerPage() {
                     variant="ghost"
                     size="sm"
                     onClick={goToPrevSubtitle}
-                    disabled={
-                      activeSubtitleIndex === null || activeSubtitleIndex <= 0
-                    }
-                    title="Previous subtitle (↑)"
+                    disabled={activeSubtitleIndex === null || activeSubtitleIndex <= 0}
                   >
                     <SkipBack className="w-4 h-4" />
                   </Button>
 
                   <Button
-                    variant={
-                      player.playerState === "playing" ? "secondary" : "primary"
-                    }
+                    variant={player.playerState === "playing" ? "secondary" : "primary"}
                     size="sm"
                     onClick={() =>
                       player.playerState === "playing"
                         ? player.pause()
                         : player.play()
                     }
-                    title="Play/Pause (Space)"
                   >
                     {player.playerState === "playing" ? (
                       <Pause className="w-4 h-4" />
@@ -450,7 +544,6 @@ export default function VideoPlayerPage() {
                       activeSubtitleIndex === null ||
                       activeSubtitleIndex >= subtitles.length - 1
                     }
-                    title="Next subtitle (↓)"
                   >
                     <SkipForward className="w-4 h-4" />
                   </Button>
@@ -517,10 +610,9 @@ export default function VideoPlayerPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsLargeVideo(!isLargeVideo)}
-                    title={isLargeVideo ? "Normal size" : "Large size"}
                   >
                     {isLargeVideo ? (
-                      <Minimize2 className="w-4 h-4" />
+                      <Maximize2 className="w-4 h-4" />
                     ) : (
                       <Maximize2 className="w-4 h-4" />
                     )}
@@ -530,128 +622,131 @@ export default function VideoPlayerPage() {
             </CardContent>
           </Card>
 
-          {/* Current Subtitle Display */}
+          {/* Shadowing Practice Area */}
           <Card className="mt-4">
             <CardContent>
               {currentSubtitle ? (
-                <div className="space-y-3">
-                  {/* Japanese Text */}
-                  <p className="text-2xl lg:text-3xl font-bold text-neutral-100 text-center">
-                    {currentSubtitle.japaneseText}
-                  </p>
-
-                  {/* Romaji */}
-                  {currentSubtitle.romaji && (
-                    <p className="text-lg text-neutral-400 italic text-center">
-                      {currentSubtitle.romaji}
-                    </p>
-                  )}
-
-                  {/* English Meaning */}
-                  <p className="text-base text-neutral-300 text-center">
-                    {currentSubtitle.meaning}
-                  </p>
-
-                  {/* Vocabulary Words */}
-                  {currentSubtitle.vocabulary &&
-                    currentSubtitle.vocabulary.length > 0 && (
-                      <div className="flex flex-wrap justify-center gap-2 pt-2">
-                        {currentSubtitle.vocabulary.map((vocab, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => setSelectedVocabulary(vocab)}
-                            className="px-3 py-1 text-sm bg-neutral-700 hover:bg-neutral-600 text-neutral-200 rounded-full transition-colors"
-                          >
-                            <span className="mr-1">{vocab.word}</span>
-                            <span className="text-neutral-400">
-                              ({vocab.reading})
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                  {/* Action Buttons */}
-                  <div className="flex justify-center gap-3 pt-3">
+                <div className="space-y-4">
+                  {/* Segment Info */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-neutral-400">
+                      Segment {activeSubtitleIndex! + 1} of {subtitles.length}
+                    </span>
                     <Button
-                      variant="secondary"
+                      variant="ghost"
                       size="sm"
                       onClick={replayCurrentSubtitle}
                     >
                       <Volume2 className="w-4 h-4" />
-                      <span>Play Audio</span>
+                      <span>Replay</span>
                     </Button>
+                  </div>
 
-                    <Link href={`/learn/videos/${videoId}/shadowing`}>
-                      <Button variant="secondary" size="sm">
-                        <Mic className="w-4 h-4" />
-                        <span>Shadowing</span>
-                      </Button>
-                    </Link>
+                  {/* Current Subtitle Display */}
+                  <div className="text-center py-4">
+                    <p className="text-3xl font-bold text-neutral-100 mb-2">
+                      {currentSubtitle.japaneseText}
+                    </p>
+                    {currentSubtitle.romaji && (
+                      <p className="text-lg text-neutral-400 italic mb-2">
+                        {currentSubtitle.romaji}
+                      </p>
+                    )}
+                    <p className="text-base text-neutral-300">
+                      {currentSubtitle.meaning}
+                    </p>
+                  </div>
 
-                    <Link href={`/learn/videos/${videoId}/dictation`}>
-                      <Button variant="secondary" size="sm">
-                        <PenTool className="w-4 h-4" />
-                        <span>Dictation</span>
-                      </Button>
-                    </Link>
+                  {/* Recording Section */}
+                  <div className="flex flex-col items-center gap-4 py-4">
+                    {isRecording ? (
+                      <>
+                        <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center animate-pulse">
+                          <Mic className="w-10 h-10 text-red-500" />
+                        </div>
+                        <p className="text-neutral-400">
+                          Recording... {(currentRecordingTime / 1000).toFixed(1)}s
+                        </p>
+                        <Button variant="secondary" onClick={stopRecording}>
+                          <MicOff className="w-4 h-4" />
+                          Stop Recording
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          size="lg"
+                          onClick={startRecording}
+                          className="bg-yellow-500 hover:bg-yellow-400 text-neutral-900"
+                        >
+                          <Mic className="w-5 h-5" />
+                          Start Recording
+                        </Button>
+                        <p className="text-sm text-neutral-400">
+                          Press to record your pronunciation
+                        </p>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Score Display */}
+                  {currentState?.hasRecorded && currentState.score !== null && (
+                    <div className="p-4 bg-neutral-800/50 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-neutral-400">
+                          Pronunciation Score
+                        </span>
+                        <span className="text-sm text-neutral-400">
+                          Attempts: {currentState.recordingCount}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className={clsx(
+                          "text-3xl font-bold",
+                          currentState.score >= 80 ? "text-green-400" :
+                          currentState.score >= 60 ? "text-yellow-400" :
+                          "text-red-400"
+                        )}>
+                          {currentState.score}%
+                        </div>
+                        <Progress
+                          value={currentState.score}
+                          className="flex-1"
+                        />
+                      </div>
+                      <p className="text-sm text-neutral-400 mt-2">
+                        {currentState.score >= 80 ? "Excellent pronunciation!" :
+                         currentState.score >= 60 ? "Good job! Keep practicing." :
+                         "Try again for better results."}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-center gap-2 pt-2">
+                    <Button variant="ghost" onClick={handleReset}>
+                      <RotateCcw className="w-4 h-4" />
+                      Reset
+                    </Button>
+                    <Button variant="secondary" onClick={goToNextSubtitle}>
+                      <SkipForward className="w-4 h-4" />
+                      Next Segment
+                    </Button>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-8">
                   <BookOpen className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
                   <p className="text-neutral-400">
-                    Play the video to see subtitles
+                    Play the video to start shadowing practice
                   </p>
                   <p className="text-sm text-neutral-500 mt-1">
-                    Click on any subtitle in the transcript to jump to that
-                    moment
+                    Listen to each segment and repeat after the speaker
                   </p>
                 </div>
               )}
             </CardContent>
           </Card>
-
-          {/* Vocabulary Popup */}
-          {selectedVocabulary && (
-            <div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-              onClick={() => setSelectedVocabulary(null)}
-            >
-              <Card
-                className="max-w-md w-full mx-4"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <CardContent>
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-2xl font-bold text-neutral-100">
-                        {selectedVocabulary.word}
-                      </h3>
-                      <p className="text-neutral-400">
-                        {selectedVocabulary.reading}
-                      </p>
-                    </div>
-                    {selectedVocabulary.partOfSpeech && (
-                      <Badge variant="default">
-                        {selectedVocabulary.partOfSpeech}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-lg text-neutral-200">
-                    {selectedVocabulary.meaning}
-                  </p>
-                  <Button
-                    variant="secondary"
-                    className="w-full mt-4"
-                    onClick={() => setSelectedVocabulary(null)}
-                  >
-                    Close
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          )}
         </div>
 
         {/* Right Side - Transcript Panel (40% on desktop) */}
@@ -665,24 +760,22 @@ export default function VideoPlayerPage() {
           <Card className="h-full">
             {/* Transcript Header */}
             <div className="p-4 border-b border-neutral-700">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-2">
                 <h2 className="text-lg font-heading font-semibold text-neutral-200">
-                  Transcript
+                  Progress
                 </h2>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-neutral-400">
-                    {activeSubtitleIndex !== null
-                      ? `${activeSubtitleIndex + 1}/${subtitles.length}`
-                      : `0/${subtitles.length}`}
+                    {completedCount}/{subtitles.length} completed
                   </span>
-                  <div className="w-24 h-1.5 bg-neutral-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-yellow-500 transition-all duration-300"
-                      style={{ width: `${progress * 100}%` }}
-                    />
-                  </div>
                 </div>
               </div>
+              <Progress value={overallProgress * 100} size="sm" />
+              {scores.length > 0 && (
+                <p className="text-xs text-neutral-500 mt-2">
+                  Average score: {averageScore}%
+                </p>
+              )}
             </div>
 
             {/* Transcript List */}
@@ -697,85 +790,83 @@ export default function VideoPlayerPage() {
                   <p className="text-neutral-400">No subtitles available</p>
                 </div>
               ) : (
-                subtitles.map((subtitle) => (
-                  <div
-                    key={subtitle.index}
-                    data-subtitle-index={subtitle.index}
-                    onClick={() => handleSubtitleClick(subtitle)}
-                    className={clsx(
-                      "p-4 border-b border-neutral-700/50 cursor-pointer transition-all",
-                      activeSubtitleIndex === subtitle.index
-                        ? "bg-yellow-500/10 border-l-4 border-l-yellow-500"
-                        : "hover:bg-neutral-800/50"
-                    )}
-                  >
-                    <div className="flex items-start gap-3">
-                      {/* Index Badge */}
-                      <span
-                        className={clsx(
-                          "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium",
-                          activeSubtitleIndex === subtitle.index
-                            ? "bg-yellow-500 text-neutral-900"
-                            : "bg-neutral-700 text-neutral-400"
-                        )}
-                      >
-                        {subtitle.index + 1}
-                      </span>
+                subtitles.map((subtitle) => {
+                  const state = shadowingStates.get(subtitle.index);
+                  const isActive = activeSubtitleIndex === subtitle.index;
+                  const isCompleted = state?.hasRecorded && (state.score ?? 0) >= 70;
 
-                      {/* Subtitle Content */}
-                      <div className="flex-1 min-w-0">
-                        <p
+                  return (
+                    <div
+                      key={subtitle.index}
+                      data-subtitle-index={subtitle.index}
+                      onClick={() => handleSubtitleClick(subtitle)}
+                      className={clsx(
+                        "p-4 border-b border-neutral-700/50 cursor-pointer transition-all",
+                        isActive
+                          ? "bg-yellow-500/10 border-l-4 border-l-yellow-500"
+                          : "hover:bg-neutral-800/50"
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Status Badge */}
+                        <span
                           className={clsx(
-                            "text-base font-medium",
-                            activeSubtitleIndex === subtitle.index
-                              ? "text-neutral-100"
-                              : "text-neutral-200"
+                            "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium",
+                            isActive
+                              ? "bg-yellow-500 text-neutral-900"
+                              : isCompleted
+                              ? "bg-green-500 text-white"
+                              : state?.hasRecorded
+                              ? "bg-yellow-500/50 text-neutral-900"
+                              : "bg-neutral-700 text-neutral-400"
                           )}
                         >
-                          {subtitle.japaneseText}
-                        </p>
-                        {subtitle.romaji && (
-                          <p className="text-sm text-neutral-400 italic mt-0.5">
-                            {subtitle.romaji}
+                          {isCompleted ? (
+                            <Check className="w-4 h-4" />
+                          ) : (
+                            subtitle.index + 1
+                          )}
+                        </span>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-medium text-neutral-200">
+                            {subtitle.japaneseText}
                           </p>
-                        )}
-                        <p className="text-sm text-neutral-500 mt-0.5">
-                          {subtitle.meaning}
-                        </p>
+                          {subtitle.romaji && (
+                            <p className="text-sm text-neutral-400 italic mt-0.5">
+                              {subtitle.romaji}
+                            </p>
+                          )}
+                          <p className="text-sm text-neutral-500 mt-0.5">
+                            {subtitle.meaning}
+                          </p>
+
+                          {/* Show score if recorded */}
+                          {state?.hasRecorded && state.score !== null && (
+                            <div className="flex items-center gap-1 mt-1">
+                              <span className={clsx(
+                                "text-xs font-medium",
+                                state.score >= 70 ? "text-green-400" : "text-yellow-400"
+                              )}>
+                                {state.score}%
+                              </span>
+                              <span className="text-xs text-neutral-500">
+                                ({state.recordingCount} attempts)
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          className="p-1.5 text-neutral-500 hover:text-neutral-300 transition-colors"
-                          title="Edit"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Edit functionality
-                          }}
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="p-1.5 text-neutral-500 hover:text-neutral-300 transition-colors"
-                          title="Report"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Report functionality
-                          }}
-                        >
-                          <AlertCircle className="w-4 h-4" />
-                        </button>
+                      {/* Timestamp */}
+                      <div className="mt-2 ml-10 text-xs text-neutral-500">
+                        {formatDuration(Math.floor(subtitle.startTime))} -{" "}
+                        {formatDuration(Math.floor(subtitle.endTime))}
                       </div>
                     </div>
-
-                    {/* Timestamp */}
-                    <div className="mt-2 ml-10 text-xs text-neutral-500">
-                      {formatDuration(Math.floor(subtitle.startTime))} -{" "}
-                      {formatDuration(Math.floor(subtitle.endTime))}
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </Card>
@@ -786,20 +877,13 @@ export default function VideoPlayerPage() {
       <div className="text-center text-sm text-neutral-500 py-4">
         <span className="inline-flex items-center gap-4">
           <span>
-            <kbd className="px-2 py-1 bg-neutral-800 rounded text-xs">
-              Space
-            </kbd>{" "}
+            <kbd className="px-2 py-1 bg-neutral-800 rounded text-xs">Space</kbd>{" "}
             Play/Pause
-          </span>
-          <span>
-            <kbd className="px-2 py-1 bg-neutral-800 rounded text-xs">←</kbd>{" "}
-            <kbd className="px-2 py-1 bg-neutral-800 rounded text-xs">→</kbd>{" "}
-            ±5 sec
           </span>
           <span>
             <kbd className="px-2 py-1 bg-neutral-800 rounded text-xs">↑</kbd>{" "}
             <kbd className="px-2 py-1 bg-neutral-800 rounded text-xs">↓</kbd>{" "}
-            Prev/Next subtitle
+            Prev/Next
           </span>
         </span>
       </div>

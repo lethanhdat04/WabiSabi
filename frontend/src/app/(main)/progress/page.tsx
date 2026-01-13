@@ -315,7 +315,7 @@ export default function ProgressPage() {
                         Keep practicing to improve your {skill.name.toLowerCase()} skills.
                         Consistent practice is the key to mastery.
                       </p>
-                      <Link href="/practice">
+                      <Link href="/learn/videos">
                         <Button variant="secondary" size="sm">
                           Practice {skill.name}
                         </Button>
@@ -378,7 +378,7 @@ export default function ProgressPage() {
                 You&apos;re making great progress. Continue practicing to reach
                 your goals.
               </p>
-              <Link href="/practice">
+              <Link href="/decks">
                 <Button>
                   <Target className="w-5 h-5" />
                   Continue Practice

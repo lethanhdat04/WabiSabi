@@ -163,7 +163,7 @@ export default function LearnPage() {
                 {todayCompleted} of {todayGoal} items practiced
               </p>
             </div>
-            <Link href="/practice">
+            <Link href="/decks">
               <Button size="sm">Continue Practice</Button>
             </Link>
           </div>
