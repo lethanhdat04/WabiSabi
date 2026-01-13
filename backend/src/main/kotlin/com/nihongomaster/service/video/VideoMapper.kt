@@ -79,9 +79,9 @@ class VideoMapper {
      */
     fun toVocabularyResponse(vocab: VocabularyReference): VocabularyReferenceResponse {
         return VocabularyReferenceResponse(
-            word = vocab.word,
-            reading = vocab.reading,
-            meaning = vocab.meaning,
+            word = vocab.word ?: "",           // Nếu null thì lấy ""
+            reading = vocab.reading ?: "",     // Nếu null thì lấy ""
+            meaning = vocab.meaning ?: "",     // Nếu null thì lấy ""
             partOfSpeech = vocab.partOfSpeech
         )
     }

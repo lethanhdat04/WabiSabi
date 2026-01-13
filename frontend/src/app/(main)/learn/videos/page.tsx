@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Search, Play, Star, Clock, Video } from "lucide-react";
 import {
@@ -14,10 +14,10 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@/components/ui";
-import { mockVideos, formatDuration, getLevelColor } from "@/lib/mock-data";
 
 const categories = [
   { value: "ALL", label: "All" },
+  { value: "ANIME", label: "Anime" },
   { value: "DAILY_LIFE", label: "Daily Life" },
   { value: "FOOD", label: "Food" },
   { value: "TRAVEL", label: "Travel" },
@@ -26,20 +26,114 @@ const categories = [
 
 const levels = ["All", "N5", "N4", "N3", "N2", "N1"];
 
+interface VideoStats {
+  viewCount: number;
+  practiceCount: number;
+  shadowingCount: number;
+  dictationCount: number;
+  averageScore: number;
+  totalRatings: number;
+  averageRating: number;
+}
+
+interface VideoData {
+  id: string;
+  title: string;
+  titleJapanese: string;
+  youtubeId: string;
+  thumbnailUrl: string;
+  duration: number;
+  category: string;
+  level: string;
+  segmentCount: number;
+  isOfficial: boolean;
+  stats: VideoStats;
+}
+
+interface ApiResponse {
+  content: VideoData[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+const formatDuration = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+};
+
+const getLevelColor = (level: string): string => {
+  const colors: Record<string, string> = {
+    N5: "green",
+    N4: "blue",
+    N3: "yellow",
+    N2: "orange",
+    N1: "red",
+  };
+  return colors[level] || "default";
+};
+
 export default function VideosPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLevel, setSelectedLevel] = useState("All");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
+  const [videos, setVideos] = useState<VideoData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
-  const filteredVideos = mockVideos.filter((video) => {
+  useEffect(() => {
+    fetchVideos();
+  }, [page, selectedLevel, selectedCategory]);
+
+  const fetchVideos = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const params = new URLSearchParams({
+        page: page.toString(),
+        size: "12",
+      });
+
+      if (selectedLevel !== "All") {
+        params.append("level", selectedLevel);
+      }
+
+      if (selectedCategory !== "ALL") {
+        params.append("category", selectedCategory);
+      }
+
+      const response = await fetch(
+        `http://localhost:8080/api/videos?${params.toString()}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch videos");
+      }
+
+      const data: ApiResponse = await response.json();
+      setVideos(data.content);
+      setTotalPages(data.totalPages);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredVideos = videos.filter((video) => {
     const matchesSearch =
       video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       video.titleJapanese.includes(searchQuery);
-    const matchesLevel =
-      selectedLevel === "All" || video.level === selectedLevel;
-    const matchesCategory =
-      selectedCategory === "ALL" || video.category === selectedCategory;
-    return matchesSearch && matchesLevel && matchesCategory;
+    return matchesSearch;
   });
 
   return (
@@ -66,7 +160,10 @@ export default function VideosPage() {
           {levels.map((level) => (
             <button
               key={level}
-              onClick={() => setSelectedLevel(level)}
+              onClick={() => {
+                setSelectedLevel(level);
+                setPage(0);
+              }}
               className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
                 selectedLevel === level
                   ? "bg-yellow-500 text-neutral-900 border-yellow-500"
@@ -86,40 +183,90 @@ export default function VideosPage() {
             <TabsTrigger
               key={cat.value}
               value={cat.value}
-              onClick={() => setSelectedCategory(cat.value)}
+              onClick={() => {
+                setSelectedCategory(cat.value);
+                setPage(0);
+              }}
             >
               {cat.label}
             </TabsTrigger>
           ))}
         </TabsList>
 
-        <TabsContent value={selectedCategory}>
-          {filteredVideos.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Video className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
-                <h3 className="text-lg font-heading font-semibold text-neutral-200 mb-2">
-                  No videos found
-                </h3>
-                <p className="text-neutral-400">
-                  Try adjusting your search or filters
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredVideos.map((video) => (
-                <VideoCard key={video.id} video={video} />
-              ))}
-            </div>
-          )}
-        </TabsContent>
+        {categories.map((cat) => (
+          <TabsContent key={cat.value} value={cat.value}>
+            {loading ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <div className="w-12 h-12 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                  <p className="text-neutral-400">Loading videos...</p>
+                </CardContent>
+              </Card>
+            ) : error ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Video className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-heading font-semibold text-neutral-200 mb-2">
+                    Error loading videos
+                  </h3>
+                  <p className="text-neutral-400 mb-4">{error}</p>
+                  <Button onClick={fetchVideos}>Retry</Button>
+                </CardContent>
+              </Card>
+            ) : filteredVideos.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Video className="w-12 h-12 text-neutral-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-heading font-semibold text-neutral-200 mb-2">
+                    No videos found
+                  </h3>
+                  <p className="text-neutral-400">
+                    Try adjusting your search or filters
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredVideos.map((video) => (
+                    <VideoCard key={video.id} video={video} />
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center items-center gap-2 mt-6">
+                    <Button
+                      onClick={() => setPage((p) => Math.max(0, p - 1))}
+                      disabled={page === 0}
+                      variant="outline"
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-neutral-400 px-4">
+                      Page {page + 1} of {totalPages}
+                    </span>
+                    <Button
+                      onClick={() =>
+                        setPage((p) => Math.min(totalPages - 1, p + 1))
+                      }
+                      disabled={page >= totalPages - 1}
+                      variant="outline"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </TabsContent>
+        ))}
       </Tabs>
     </div>
   );
 }
 
-function VideoCard({ video }: { video: (typeof mockVideos)[0] }) {
+function VideoCard({ video }: { video: VideoData }) {
   return (
     <Link href={`/learn/videos/${video.id}`}>
       <Card variant="interactive" className="h-full overflow-hidden">
@@ -162,7 +309,7 @@ function VideoCard({ video }: { video: (typeof mockVideos)[0] }) {
               <span>{video.stats.viewCount.toLocaleString()} views</span>
               <span className="flex items-center gap-1">
                 <Star className="w-4 h-4 text-yellow-500" />
-                {video.stats.averageRating}
+                {video.stats.averageRating.toFixed(1)}
               </span>
             </div>
           </div>

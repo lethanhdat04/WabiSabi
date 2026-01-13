@@ -46,7 +46,7 @@ data class Video(
 
     val subtitles: List<SubtitleSegment> = emptyList(),
 
-    val uploadedBy: String,  // User ID of uploader (admin)
+    val uploadedBy: String = "ADMIN",  // User ID of uploader (admin)
 
     val isOfficial: Boolean = false,  // Admin-curated content
 
@@ -105,9 +105,9 @@ data class SubtitleSegment(
  * Contains word details for learning purposes.
  */
 data class VocabularyReference(
-    val word: String,                    // Japanese word (e.g., "おはよう")
-    val reading: String,                 // Hiragana/katakana reading (e.g., "おはよう")
-    val meaning: String,                 // English/Vietnamese meaning
+    val word: String? = null,                    // Japanese word (e.g., "おはよう")
+    val reading: String? = null,                 // Hiragana/katakana reading (e.g., "おはよう")
+    val meaning: String? = null,                 // English/Vietnamese meaning
     val partOfSpeech: String? = null     // Part of speech (e.g., "Expression", "Verb", "Noun")
 )
 

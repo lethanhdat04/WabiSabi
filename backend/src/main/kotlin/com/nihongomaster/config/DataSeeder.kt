@@ -48,7 +48,7 @@ class DataSeeder(
         val regularUser = users.first { it.role == UserRole.USER }
 
         // Create videos
-        seedVideos(videoRepository, adminUser.id!!)
+        // seedVideos(videoRepository, adminUser.id!!)
 
         // Create vocabulary decks
         seedVocabularyDecks(deckRepository, adminUser.id!!, regularUser.id!!)
