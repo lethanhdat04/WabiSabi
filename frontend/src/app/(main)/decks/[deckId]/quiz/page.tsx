@@ -92,8 +92,12 @@ export default function DeckQuizPage() {
   const currentQuestion = questions[currentIndex];
   const progress = questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0;
 
-  const checkAnswer = async () => {
+  // Accept optional answer parameter for multiple choice (fixes React async state issue)
+  const checkAnswer = async (selectedAnswer?: string) => {
     if (!currentQuestion || isSubmitting) return;
+
+    const answerToSubmit = selectedAnswer ?? userAnswer;
+    if (!answerToSubmit.trim()) return;
 
     setIsSubmitting(true);
 
@@ -102,18 +106,19 @@ export default function DeckQuizPage() {
         deckId,
         sectionIndex: currentQuestion.sectionIndex,
         itemIndex: currentQuestion.itemIndex,
-        userAnswer: userAnswer.trim(),
+        userAnswer: answerToSubmit.trim(),
         questionType: currentQuestion.questionType,
       });
 
       const result: QuizResult = {
         questionId: currentQuestion.questionId,
-        userAnswer: userAnswer.trim(),
+        userAnswer: answerToSubmit.trim(),
         isCorrect: response.isCorrect,
         correctAnswer: response.correctAnswer,
         feedback: response.feedback,
       };
 
+      setUserAnswer(answerToSubmit);
       setCurrentResult(result);
       setResults([...results, result]);
       setShowResult(true);
@@ -121,11 +126,11 @@ export default function DeckQuizPage() {
       console.error("Failed to submit answer:", err);
       // Fallback to local comparison if API fails
       const isCorrect =
-        userAnswer.toLowerCase().trim() === currentQuestion.prompt.toLowerCase().trim();
+        answerToSubmit.toLowerCase().trim() === currentQuestion.prompt.toLowerCase().trim();
 
       const result: QuizResult = {
         questionId: currentQuestion.questionId,
-        userAnswer: userAnswer.trim(),
+        userAnswer: answerToSubmit.trim(),
         isCorrect,
         correctAnswer: currentQuestion.prompt,
         feedback: isCorrect ? "Correct!" : "Incorrect",
@@ -382,17 +387,14 @@ export default function DeckQuizPage() {
           {!showResult ? (
             <div className="space-y-4">
               {currentQuestion.options && currentQuestion.options.length > 0 ? (
-                // Multiple choice
+                // Multiple choice - pass answer directly to avoid React state async issue
                 <div className="grid grid-cols-2 gap-3">
                   {currentQuestion.options.map((option, idx) => (
                     <Button
                       key={idx}
                       variant="secondary"
                       className="h-auto py-4 text-left justify-start"
-                      onClick={() => {
-                        setUserAnswer(option);
-                        setTimeout(() => checkAnswer(), 100);
-                      }}
+                      onClick={() => checkAnswer(option)}
                       disabled={isSubmitting}
                     >
                       {option}
@@ -436,7 +438,7 @@ export default function DeckQuizPage() {
                     </button>
 
                     <Button
-                      onClick={checkAnswer}
+                      onClick={() => checkAnswer()}
                       disabled={!userAnswer.trim() || isSubmitting}
                     >
                       {isSubmitting ? "Checking..." : "Check Answer"}

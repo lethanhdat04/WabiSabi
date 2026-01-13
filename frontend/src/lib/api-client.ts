@@ -452,12 +452,43 @@ export const deckApi = {
   getProgress: (deckId: string): Promise<DeckProgress> =>
     fetchWithAuth(`/vocabulary/decks/${deckId}/progress`),
 
-  create: (data: Partial<VocabularyDeck>): Promise<VocabularyDeck> =>
+  create: (data: CreateDeckRequest): Promise<VocabularyDeck> =>
     fetchWithAuth('/vocabulary/decks', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 };
+
+// Request type for creating a new deck
+export interface CreateDeckRequest {
+  title: string;
+  description?: string;
+  coverImageUrl?: string;
+  languageDirection?: string;
+  level: string;
+  topic: string;
+  tags?: string[];
+  isPublic?: boolean;
+  sections?: CreateSectionRequest[];
+}
+
+export interface CreateSectionRequest {
+  title: string;
+  description?: string;
+  items?: CreateVocabularyItemRequest[];
+}
+
+export interface CreateVocabularyItemRequest {
+  japaneseWord: string;
+  reading: string;
+  meaning: string;
+  partOfSpeech?: string;
+  exampleSentence?: string;
+  exampleMeaning?: string;
+  imageUrl?: string;
+  audioUrl?: string;
+  notes?: string;
+}
 
 // ============ VOCABULARY PRACTICE API ============
 

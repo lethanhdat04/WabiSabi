@@ -103,10 +103,12 @@ export default function DecksPage() {
             Browse and study vocabulary collections
           </p>
         </div>
-        <Button>
-          <Plus className="w-5 h-5" />
-          Create Deck
-        </Button>
+        <Link href="/decks/new">
+          <Button>
+            <Plus className="w-5 h-5" />
+            Create Deck
+          </Button>
+        </Link>
       </div>
 
       {/* Stats */}
