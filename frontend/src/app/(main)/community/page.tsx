@@ -27,24 +27,34 @@ import {
 import { forumApi, Post, PageResponse } from "@/lib/api-client";
 import { formatRelativeTime } from "@/lib/hooks";
 
+// Topics matching backend ForumTopic enum
 const topics = [
   "All",
-  "GENERAL",
-  "STUDY_TIPS",
-  "GRAMMAR",
-  "RESOURCES",
-  "JOURNEY",
-  "QUESTIONS",
+  "JLPT_TIPS",
+  "LEARNING_RESOURCES",
+  "JAPAN_CULTURE",
+  "TRAVEL",
+  "GRAMMAR_QUESTIONS",
+  "VOCABULARY_HELP",
+  "PRACTICE_PARTNERS",
+  "SUCCESS_STORIES",
+  "GENERAL_DISCUSSION",
+  "FEEDBACK",
 ];
 
 const topicLabels: Record<string, string> = {
   All: "All",
-  GENERAL: "General",
-  STUDY_TIPS: "Study Tips",
-  GRAMMAR: "Grammar",
-  RESOURCES: "Resources",
-  JOURNEY: "Journey",
-  QUESTIONS: "Questions",
+  JLPT_TIPS: "JLPT Tips",
+  LEARNING_RESOURCES: "Resources",
+  JAPAN_CULTURE: "Culture",
+  TRAVEL: "Travel",
+  GRAMMAR_QUESTIONS: "Grammar",
+  VOCABULARY_HELP: "Vocabulary",
+  PRACTICE_PARTNERS: "Partners",
+  SUCCESS_STORIES: "Stories",
+  GENERAL_DISCUSSION: "General",
+  ANNOUNCEMENTS: "Announcements",
+  FEEDBACK: "Feedback",
 };
 
 export default function CommunityPage() {
@@ -87,9 +97,11 @@ export default function CommunityPage() {
   // Filter by search query locally
   const filteredPosts = posts.filter((post) => {
     if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
     return (
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.content.toLowerCase().includes(searchQuery.toLowerCase())
+      post.title.toLowerCase().includes(query) ||
+      (post.content?.toLowerCase().includes(query) ?? false) ||
+      (post.contentPreview?.toLowerCase().includes(query) ?? false)
     );
   });
 

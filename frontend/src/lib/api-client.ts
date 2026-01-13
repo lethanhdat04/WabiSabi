@@ -759,10 +759,14 @@ export const forumApi = {
     sort?: string;
   }): Promise<PageResponse<Post>> => {
     const query = new URLSearchParams();
-    if (params?.topic) query.set('topic', params.topic);
     if (params?.page !== undefined) query.set('page', String(params.page));
     if (params?.size) query.set('size', String(params.size));
     if (params?.sort) query.set('sort', params.sort);
+
+    // Use topic-specific endpoint if topic is provided
+    if (params?.topic) {
+      return fetchWithAuth(`/forum/posts/topic/${params.topic}?${query.toString()}`);
+    }
     return fetchWithAuth(`/forum/posts?${query.toString()}`);
   },
 

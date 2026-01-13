@@ -19,14 +19,20 @@ import {
   Badge,
   Input,
 } from "@/components/ui";
+import { forumApi } from "@/lib/api-client";
 
+// Map to backend ForumTopic enum
 const categories = [
-  "Study Tips",
-  "Grammar",
-  "Resources",
-  "Journey",
-  "Questions",
-  "Discussion",
+  { label: "JLPT Tips", value: "JLPT_TIPS" },
+  { label: "Learning Resources", value: "LEARNING_RESOURCES" },
+  { label: "Japan Culture", value: "JAPAN_CULTURE" },
+  { label: "Travel", value: "TRAVEL" },
+  { label: "Grammar Questions", value: "GRAMMAR_QUESTIONS" },
+  { label: "Vocabulary Help", value: "VOCABULARY_HELP" },
+  { label: "Practice Partners", value: "PRACTICE_PARTNERS" },
+  { label: "Success Stories", value: "SUCCESS_STORIES" },
+  { label: "General Discussion", value: "GENERAL_DISCUSSION" },
+  { label: "Feedback", value: "FEEDBACK" },
 ];
 
 const suggestedTags = [
@@ -65,15 +71,28 @@ export default function NewPostPage() {
     setTags(tags.filter((t) => t !== tag));
   };
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleSubmit = async () => {
     if (!title.trim() || !content.trim() || !selectedCategory) {
       return;
     }
 
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    router.push("/community");
+    setError(null);
+
+    try {
+      await forumApi.createPost({
+        title: title.trim(),
+        content: content.trim(),
+        topic: selectedCategory,
+        tags: tags.length > 0 ? tags : undefined,
+      });
+      router.push("/community");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create post");
+      setIsSubmitting(false);
+    }
   };
 
   const isValid = title.trim() && content.trim() && selectedCategory;
@@ -132,19 +151,26 @@ export default function NewPostPage() {
             <div className="flex flex-wrap gap-2">
               {categories.map((category) => (
                 <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
+                  key={category.value}
+                  onClick={() => setSelectedCategory(category.value)}
                   className={`px-3 py-2 rounded-lg text-sm transition-colors ${
-                    selectedCategory === category
+                    selectedCategory === category.value
                       ? "bg-yellow-500 text-neutral-900"
                       : "bg-neutral-900 text-neutral-400 border border-neutral-700 hover:text-neutral-200"
                   }`}
                 >
-                  {category}
+                  {category.label}
                 </button>
               ))}
             </div>
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+              {error}
+            </div>
+          )}
 
           {/* Content */}
           <div>
@@ -249,7 +275,9 @@ export default function NewPostPage() {
               )}
               <div className="flex items-center gap-2 mb-3">
                 {selectedCategory && (
-                  <Badge variant="default">{selectedCategory}</Badge>
+                  <Badge variant="default">
+                    {categories.find((c) => c.value === selectedCategory)?.label || selectedCategory}
+                  </Badge>
                 )}
                 {tags.map((tag) => (
                   <span
