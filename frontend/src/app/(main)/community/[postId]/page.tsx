@@ -61,7 +61,7 @@ export default function PostDetailPage() {
       try {
         const response = await forumApi.getPostWithComments(postId);
         setPost(response.post);
-        setComments(response.comments?.content || []);
+        setComments(response.comments || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load post");
       } finally {

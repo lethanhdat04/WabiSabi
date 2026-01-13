@@ -773,7 +773,12 @@ export const forumApi = {
   getPost: (id: string): Promise<Post> =>
     fetchWithAuth(`/forum/posts/${id}`),
 
-  getPostWithComments: (id: string, page = 0, size = 20): Promise<{ post: Post; comments: PageResponse<Comment> }> =>
+  getPostWithComments: (id: string, page = 0, size = 20): Promise<{
+    post: Post;
+    comments: Comment[];
+    totalComments: number;
+    hasMoreComments: boolean;
+  }> =>
     fetchWithAuth(`/forum/posts/${id}/with-comments?page=${page}&size=${size}`),
 
   createPost: (data: CreatePostRequest): Promise<Post> =>
