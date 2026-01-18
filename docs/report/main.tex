@@ -1,0 +1,2387 @@
+% ============================================================================
+% BÁO CÁO ĐỒ ÁN: HỆ THỐNG HỌC TIẾNG NHẬT NIHONGO MASTER
+% Compile với: pdflatex hoặc xelatex trên Overleaf
+% ============================================================================
+
+\documentclass[12pt,a4paper]{report}
+
+% ============================================================================
+% PACKAGES
+% ============================================================================
+
+% Tiếng Việt
+\usepackage[utf8]{inputenc}
+\usepackage[vietnamese]{babel}
+\usepackage{times}
+
+% Layout
+\usepackage[top=3cm, bottom=2cm, left=3.5cm, right=2cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% Graphics và Colors
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, fit, backgrounds, shadows, decorations.markings}
+
+% Tables
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+
+% Code Listings
+\usepackage{listings}
+\usepackage{inconsolata}
+
+% Headers và Footers
+\usepackage{fancyhdr}
+
+% Table of Contents
+\usepackage{tocloft}
+
+% Hyperlinks
+\usepackage[hidelinks]{hyperref}
+
+% Float
+\usepackage{float}
+\usepackage{subcaption}
+
+% Math
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% Captions
+\usepackage{caption}
+
+% Directory Tree
+\usepackage{dirtree}
+
+% Enumerate
+\usepackage{enumitem}
+
+% ============================================================================
+% CUSTOM COLORS
+% ============================================================================
+
+\definecolor{primaryblue}{RGB}{41, 98, 255}
+\definecolor{darkblue}{RGB}{26, 35, 126}
+\definecolor{codebg}{RGB}{245, 245, 245}
+\definecolor{codegreen}{RGB}{0, 128, 0}
+\definecolor{codegray}{RGB}{128, 128, 128}
+\definecolor{codepurple}{RGB}{128, 0, 128}
+\definecolor{backcolour}{RGB}{250, 250, 250}
+\definecolor{entitycolor}{RGB}{230, 243, 255}
+\definecolor{classcolor}{RGB}{255, 248, 220}
+
+% ============================================================================
+% CODE LISTING STYLES
+% ============================================================================
+
+\lstdefinestyle{kotlinstyle}{
+    language=Java,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen}\itshape,
+    keywordstyle=\color{primaryblue}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\small,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=8pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single,
+    rulecolor=\color{codegray},
+    morekeywords={fun, val, var, data, class, object, interface, override, suspend, when, is, in, out, by, companion, init, constructor, sealed, enum, annotation, typealias, inline, reified, crossinline, noinline, lateinit, const, internal, actual, expect}
+}
+
+\lstdefinestyle{typescriptstyle}{
+    language=Java,
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen}\itshape,
+    keywordstyle=\color{primaryblue}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\small,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=8pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single,
+    rulecolor=\color{codegray},
+    morekeywords={const, let, async, await, function, interface, type, export, import, from, default, extends, implements, readonly, namespace, module, declare, as, typeof, keyof, infer, never, unknown, any, void, null, undefined, boolean, number, string, symbol, bigint}
+}
+
+\lstdefinestyle{jsonstyle}{
+    backgroundcolor=\color{backcolour},
+    basicstyle=\ttfamily\small,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=8pt,
+    frame=single,
+    rulecolor=\color{codegray}
+}
+
+\lstset{style=kotlinstyle}
+
+% ============================================================================
+% HEADER/FOOTER SETUP
+% ============================================================================
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyhead[R]{\thepage}
+\fancyfoot[C]{}
+\renewcommand{\headrulewidth}{0.5pt}
+
+% ============================================================================
+% TABLE OF CONTENTS FORMATTING
+% ============================================================================
+
+\renewcommand{\cftchapfont}{\bfseries}
+\renewcommand{\cftsecfont}{\normalfont}
+\renewcommand{\cftsubsecfont}{\normalfont}
+\setlength{\cftbeforechapskip}{0.5em}
+
+% ============================================================================
+% CHAPTER FORMATTING
+% ============================================================================
+
+\makeatletter
+\renewcommand{\@makechapterhead}[1]{%
+  \vspace*{30pt}%
+  {\parindent \z@ \centering \normalfont
+    \ifnum \c@secnumdepth >\m@ne
+      \huge\bfseries \MakeUppercase{\@chapapp}\space \thechapter
+      \par\nobreak
+      \vskip 10\p@
+    \fi
+    \interlinepenalty\@M
+    \Huge \bfseries \MakeUppercase{#1}\par\nobreak
+    \vskip 30\p@
+  }}
+\makeatother
+
+% ============================================================================
+% NEW COMMANDS
+% ============================================================================
+
+\newcommand{\code}[1]{\texttt{#1}}
+
+% ============================================================================
+% BEGIN DOCUMENT
+% ============================================================================
+
+\begin{document}
+
+% ============================================================================
+% TRANG BÌA
+% ============================================================================
+
+\begin{titlepage}
+    \begin{center}
+
+        \textbf{\Large TRƯỜNG ĐẠI HỌC CÔNG NGHỆ THÔNG TIN}\\[0.3cm]
+        \textbf{\Large ĐẠI HỌC QUỐC GIA TP. HỒ CHÍ MINH}\\[0.5cm]
+        \textbf{\large KHOA CÔNG NGHỆ PHẦN MỀM}\\[1.5cm]
+
+        \begin{tikzpicture}
+            \node[draw, circle, minimum size=3cm, very thick, color=primaryblue] (logo) {};
+            \node at (logo.center) {\textbf{\Large UIT}};
+        \end{tikzpicture}
+
+        \vspace{1.5cm}
+
+        \textbf{\LARGE BÁO CÁO ĐỒ ÁN}\\[0.5cm]
+        \textbf{\Large MÔN: PHÁT TRIỂN ỨNG DỤNG WEB}\\[1.5cm]
+
+        \rule{\textwidth}{1pt}\\[0.5cm]
+        {\Huge \textbf{HỆ THỐNG HỌC TIẾNG NHẬT}}\\[0.3cm]
+        {\Huge \textbf{NIHONGO MASTER}}\\[0.5cm]
+        \rule{\textwidth}{1pt}\\[2cm]
+
+        \begin{minipage}{0.5\textwidth}
+            \begin{flushleft}
+                \textbf{Giảng viên hướng dẫn:}\\
+                ThS. Nguyễn Văn A\\[1cm]
+                \textbf{Sinh viên thực hiện:}\\
+                Nguyễn Văn B - 21520XXX\\
+                Trần Thị C - 21520YYY\\[1cm]
+                \textbf{Lớp:} SE501.P11
+            \end{flushleft}
+        \end{minipage}
+
+        \vfill
+
+        \textbf{\large TP. Hồ Chí Minh, tháng 01 năm 2026}
+
+    \end{center}
+\end{titlepage}
+
+% ============================================================================
+% LỜI CẢM ƠN
+% ============================================================================
+
+\chapter*{Lời Cảm Ơn}
+\addcontentsline{toc}{chapter}{Lời Cảm Ơn}
+
+Lời đầu tiên, nhóm chúng em xin gửi lời cảm ơn chân thành đến \textbf{Trường Đại học Công nghệ Thông tin - Đại học Quốc gia TP. Hồ Chí Minh} đã tạo điều kiện cho chúng em được học tập và nghiên cứu trong môi trường học thuật chuyên nghiệp.
+
+Chúng em xin bày tỏ lòng biết ơn sâu sắc đến \textbf{ThS. Nguyễn Văn A}, giảng viên hướng dẫn, người đã tận tình chỉ bảo, định hướng và hỗ trợ chúng em trong suốt quá trình thực hiện đồ án.
+
+Chúng em cũng xin cảm ơn các thầy cô trong \textbf{Khoa Công nghệ Phần mềm} đã truyền đạt những kiến thức quý báu về phát triển phần mềm, lập trình web, và các công nghệ hiện đại.
+
+Cuối cùng, chúng em xin cảm ơn gia đình, bạn bè đã luôn động viên, khích lệ và hỗ trợ chúng em trong quá trình học tập và thực hiện đồ án.
+
+\vspace{1cm}
+\begin{flushright}
+    \textit{TP. Hồ Chí Minh, tháng 01 năm 2026}\\
+    \textbf{Nhóm sinh viên thực hiện}
+\end{flushright}
+
+% ============================================================================
+% MỤC LỤC
+% ============================================================================
+
+\tableofcontents
+\listoffigures
+\addcontentsline{toc}{chapter}{Danh sách hình ảnh}
+\listoftables
+\addcontentsline{toc}{chapter}{Danh sách bảng biểu}
+
+\lstlistoflistings
+\addcontentsline{toc}{chapter}{Danh sách mã nguồn}
+
+% ============================================================================
+% CHƯƠNG 1: TỔNG QUAN DỰ ÁN
+% ============================================================================
+
+\chapter{Tổng Quan Dự Án}
+
+\section{Giới thiệu}
+
+\subsection{Bối cảnh và lý do chọn đề tài}
+
+Trong bối cảnh toàn cầu hóa và hội nhập quốc tế ngày càng sâu rộng, việc học ngoại ngữ, đặc biệt là tiếng Nhật, đang trở thành nhu cầu thiết yếu của nhiều người Việt Nam. Theo thống kê của Quỹ Giao lưu Quốc tế Nhật Bản (Japan Foundation), Việt Nam là một trong những quốc gia có số lượng người học tiếng Nhật tăng trưởng nhanh nhất thế giới.
+
+Tuy nhiên, việc học tiếng Nhật vẫn gặp nhiều thách thức:
+
+\begin{itemize}
+    \item \textbf{Hệ thống chữ viết phức tạp}: Tiếng Nhật sử dụng ba hệ thống chữ viết (Hiragana, Katakana, Kanji), đòi hỏi người học phải ghi nhớ hàng nghìn ký tự.
+    \item \textbf{Phát âm và ngữ điệu}: Tiếng Nhật có hệ thống cao độ (pitch accent) khác biệt với tiếng Việt.
+    \item \textbf{Ngữ pháp đảo ngược}: Cấu trúc câu SOV (Subject-Object-Verb) khác với tiếng Việt.
+    \item \textbf{Thiếu môi trường thực hành}: Người học thiếu cơ hội giao tiếp với người bản xứ.
+\end{itemize}
+
+\subsection{Mục tiêu dự án}
+
+Dự án \textbf{Nihongo Master} được phát triển với các mục tiêu:
+
+\begin{enumerate}
+    \item Xây dựng nền tảng học tiếng Nhật trực tuyến toàn diện với các chế độ luyện tập đa dạng.
+    \item Tích hợp video YouTube với phụ đề song ngữ để học qua nội dung thực tế.
+    \item Phát triển hệ thống luyện Shadowing (bắt chước phát âm) và Dictation (nghe chép).
+    \item Xây dựng hệ thống từ vựng với thuật toán Spaced Repetition.
+    \item Tạo cộng đồng học tập với diễn đàn trao đổi.
+\end{enumerate}
+
+\section{Phạm vi dự án}
+
+\subsection{Các chức năng chính}
+
+Hệ thống Nihongo Master bao gồm các module chức năng sau:
+
+\begin{table}[H]
+\centering
+\caption{Các module chức năng của hệ thống}
+\label{tab:modules}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Module} & \textbf{Mô tả} \\
+\hline
+Authentication & Đăng ký, đăng nhập với JWT (Access Token + Refresh Token), quản lý phiên \\
+\hline
+Video Learning & Xem video YouTube với phụ đề, phân loại theo cấp độ JLPT (N5-N1) \\
+\hline
+Shadowing Practice & Luyện phát âm bằng cách bắt chước audio từ video \\
+\hline
+Dictation Practice & Luyện nghe bằng cách chép lại nội dung audio \\
+\hline
+Vocabulary & Quản lý bộ từ vựng (Deck), học theo thuật toán Spaced Repetition \\
+\hline
+Community Forum & Diễn đàn trao đổi với các topic, bài viết, bình luận, like \\
+\hline
+User Profile & Quản lý thông tin cá nhân, theo dõi tiến độ học tập \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Công nghệ sử dụng}
+
+\begin{table}[H]
+\centering
+\caption{Stack công nghệ của dự án}
+\label{tab:techstack}
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Layer} & \textbf{Công nghệ} & \textbf{Mô tả} \\
+\hline
+Frontend & Next.js 14 & React framework với App Router, Server Components \\
+\hline
+Frontend & TypeScript & Type-safe JavaScript \\
+\hline
+Frontend & Tailwind CSS & Utility-first CSS framework \\
+\hline
+Backend & Kotlin & JVM language với null safety \\
+\hline
+Backend & Spring Boot 3 & Java/Kotlin web framework \\
+\hline
+Backend & Spring Security & Authentication và Authorization \\
+\hline
+Database & MongoDB & NoSQL document database \\
+\hline
+Auth & JWT & JSON Web Token cho authentication \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Cấu trúc thư mục dự án}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    every node/.style={font=\ttfamily\small},
+    folder/.style={draw, rectangle, rounded corners=2pt, minimum height=0.6cm, fill=yellow!20},
+    file/.style={draw, rectangle, minimum height=0.5cm, fill=white}
+]
+\node[folder] (root) at (0,0) {nihongo-master/};
+\node[folder] (backend) at (-3,-1) {backend/};
+\node[folder] (frontend) at (3,-1) {frontend/};
+\node[folder] (docs) at (0,-1) {docs/};
+
+\node[folder] (src) at (-4,-2) {src/main/kotlin/};
+\node[folder] (resources) at (-2,-2) {resources/};
+
+\node[folder] (app) at (2,-2) {src/app/};
+\node[folder] (lib) at (4,-2) {src/lib/};
+
+\draw[-] (root) -- (backend);
+\draw[-] (root) -- (frontend);
+\draw[-] (root) -- (docs);
+\draw[-] (backend) -- (src);
+\draw[-] (backend) -- (resources);
+\draw[-] (frontend) -- (app);
+\draw[-] (frontend) -- (lib);
+\end{tikzpicture}
+\caption{Cấu trúc thư mục tổng quan}
+\label{fig:project-structure}
+\end{figure}
+
+% ============================================================================
+% CHƯƠNG 2: PHÂN TÍCH YÊU CẦU
+% ============================================================================
+
+\chapter{Phân Tích Yêu Cầu}
+
+\section{Yêu cầu chức năng}
+
+\subsection{Quản lý người dùng (Authentication)}
+
+\begin{table}[H]
+\centering
+\caption{Yêu cầu chức năng - Authentication}
+\label{tab:req-auth}
+\begin{tabularx}{\textwidth}{|l|X|l|}
+\hline
+\textbf{ID} & \textbf{Mô tả} & \textbf{Độ ưu tiên} \\
+\hline
+AUTH-01 & Đăng ký tài khoản với email, username, password & Cao \\
+\hline
+AUTH-02 & Đăng nhập và nhận JWT (accessToken, refreshToken) & Cao \\
+\hline
+AUTH-03 & Làm mới Access Token bằng Refresh Token & Cao \\
+\hline
+AUTH-04 & Đăng xuất khỏi thiết bị hiện tại & Cao \\
+\hline
+AUTH-05 & Đăng xuất khỏi tất cả thiết bị & Trung bình \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Học qua Video}
+
+\begin{table}[H]
+\centering
+\caption{Yêu cầu chức năng - Video Learning}
+\label{tab:req-video}
+\begin{tabularx}{\textwidth}{|l|X|l|}
+\hline
+\textbf{ID} & \textbf{Mô tả} & \textbf{Độ ưu tiên} \\
+\hline
+VIDEO-01 & Xem danh sách video theo category và level JLPT & Cao \\
+\hline
+VIDEO-02 & Tìm kiếm video theo từ khóa & Cao \\
+\hline
+VIDEO-03 & Xem video với phụ đề hiển thị theo segment & Cao \\
+\hline
+VIDEO-04 & Lọc video theo VideoCategory (ANIME, DRAMA, NEWS, VLOG, MUSIC, EDUCATIONAL) & Trung bình \\
+\hline
+VIDEO-05 & Lọc video theo JLPTLevel (N5, N4, N3, N2, N1) & Trung bình \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Luyện tập Shadowing}
+
+\begin{table}[H]
+\centering
+\caption{Yêu cầu chức năng - Shadowing Practice}
+\label{tab:req-shadowing}
+\begin{tabularx}{\textwidth}{|l|X|l|}
+\hline
+\textbf{ID} & \textbf{Mô tả} & \textbf{Độ ưu tiên} \\
+\hline
+SHADOW-01 & Chọn segment từ video để luyện shadowing & Cao \\
+\hline
+SHADOW-02 & Ghi âm giọng nói và gửi lên server & Cao \\
+\hline
+SHADOW-03 & Nhận đánh giá ShadowingEvaluation (score, feedback) & Cao \\
+\hline
+SHADOW-04 & Xem lịch sử các lần luyện tập & Trung bình \\
+\hline
+SHADOW-05 & Xem thống kê tiến độ shadowing & Trung bình \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Luyện tập Dictation}
+
+\begin{table}[H]
+\centering
+\caption{Yêu cầu chức năng - Dictation Practice}
+\label{tab:req-dictation}
+\begin{tabularx}{\textwidth}{|l|X|l|}
+\hline
+\textbf{ID} & \textbf{Mô tả} & \textbf{Độ ưu tiên} \\
+\hline
+DICT-01 & Chọn segment từ video để luyện dictation & Cao \\
+\hline
+DICT-02 & Nghe audio và nhập văn bản (userInputText) & Cao \\
+\hline
+DICT-03 & Nhận đánh giá DictationEvaluation với accuracy, mistakes & Cao \\
+\hline
+DICT-04 & Xem lịch sử các lần luyện tập & Trung bình \\
+\hline
+DICT-05 & Xem thống kê tiến độ dictation & Trung bình \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Quản lý từ vựng}
+
+\begin{table}[H]
+\centering
+\caption{Yêu cầu chức năng - Vocabulary}
+\label{tab:req-vocab}
+\begin{tabularx}{\textwidth}{|l|X|l|}
+\hline
+\textbf{ID} & \textbf{Mô tả} & \textbf{Độ ưu tiên} \\
+\hline
+VOCAB-01 & Tạo, sửa, xóa bộ từ vựng (VocabularyDeck) & Cao \\
+\hline
+VOCAB-02 & Thêm section và item vào deck & Cao \\
+\hline
+VOCAB-03 & Học từ vựng theo chế độ Flashcard & Cao \\
+\hline
+VOCAB-04 & Theo dõi tiến độ học với thuật toán Spaced Repetition & Cao \\
+\hline
+VOCAB-05 & Chia sẻ deck công khai (isPublic) & Trung bình \\
+\hline
+VOCAB-06 & Lọc deck theo DeckTopic (JLPT\_N5, N4, N3, N2, N1, CUSTOM) & Trung bình \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Diễn đàn cộng đồng}
+
+\begin{table}[H]
+\centering
+\caption{Yêu cầu chức năng - Community Forum}
+\label{tab:req-forum}
+\begin{tabularx}{\textwidth}{|l|X|l|}
+\hline
+\textbf{ID} & \textbf{Mô tả} & \textbf{Độ ưu tiên} \\
+\hline
+FORUM-01 & Tạo bài viết (Post) với title, content, topic, tags & Cao \\
+\hline
+FORUM-02 & Xem danh sách bài viết theo ForumTopic & Cao \\
+\hline
+FORUM-03 & Bình luận (Comment) vào bài viết & Cao \\
+\hline
+FORUM-04 & Like/Unlike bài viết và bình luận & Trung bình \\
+\hline
+FORUM-05 & Tìm kiếm bài viết theo từ khóa & Trung bình \\
+\hline
+FORUM-06 & Xem bài viết trending, popular & Thấp \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Yêu cầu phi chức năng}
+
+\begin{table}[H]
+\centering
+\caption{Yêu cầu phi chức năng}
+\label{tab:nfr}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Yêu cầu} & \textbf{Mô tả} \\
+\hline
+Hiệu năng & API response time dưới 500ms cho các thao tác thông thường \\
+\hline
+Bảo mật & Sử dụng JWT với Access Token (15 phút) và Refresh Token (7 ngày) \\
+\hline
+Khả năng mở rộng & Kiến trúc module hóa, dễ thêm tính năng mới \\
+\hline
+Tương thích & Hỗ trợ các trình duyệt hiện đại (Chrome, Firefox, Safari, Edge) \\
+\hline
+Responsive & Giao diện thích ứng với mobile, tablet, desktop \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Biểu đồ Use Case}
+
+\subsection{Use Case tổng quan hệ thống}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    actor/.style={},
+    usecase/.style={draw, ellipse, minimum width=2.5cm, minimum height=1cm, align=center, font=\small},
+    system/.style={draw, rectangle, minimum width=10cm, minimum height=12cm}
+]
+
+% System boundary
+\node[system, label=above:{\textbf{Hệ thống Nihongo Master}}] (sys) at (5,0) {};
+
+% Actors
+\node[actor] (guest) at (-2,4) {\includegraphics[width=0.8cm]{example-image}};
+\node[below=0.1cm of guest, font=\small] {Guest};
+
+\node[actor] (user) at (-2,0) {\includegraphics[width=0.8cm]{example-image}};
+\node[below=0.1cm of user, font=\small] {User};
+
+\node[actor] (admin) at (-2,-4) {\includegraphics[width=0.8cm]{example-image}};
+\node[below=0.1cm of admin, font=\small] {Admin};
+
+% Use cases
+\node[usecase] (uc1) at (3,5) {Đăng ký};
+\node[usecase] (uc2) at (7,5) {Đăng nhập};
+\node[usecase] (uc3) at (3,3) {Xem video};
+\node[usecase] (uc4) at (7,3) {Tìm kiếm video};
+\node[usecase] (uc5) at (3,1) {Luyện Shadowing};
+\node[usecase] (uc6) at (7,1) {Luyện Dictation};
+\node[usecase] (uc7) at (3,-1) {Học từ vựng};
+\node[usecase] (uc8) at (7,-1) {Quản lý Deck};
+\node[usecase] (uc9) at (3,-3) {Tham gia Forum};
+\node[usecase] (uc10) at (7,-3) {Quản lý Profile};
+\node[usecase] (uc11) at (5,-5) {Quản lý hệ thống};
+
+% Connections - Guest
+\draw[-] (guest) -- (uc1);
+\draw[-] (guest) -- (uc2);
+
+% Connections - User
+\draw[-] (user) -- (uc3);
+\draw[-] (user) -- (uc4);
+\draw[-] (user) -- (uc5);
+\draw[-] (user) -- (uc6);
+\draw[-] (user) -- (uc7);
+\draw[-] (user) -- (uc8);
+\draw[-] (user) -- (uc9);
+\draw[-] (user) -- (uc10);
+
+% Connections - Admin
+\draw[-] (admin) -- (uc11);
+\draw[-] (admin) -- (uc9);
+
+\end{tikzpicture}
+\caption{Biểu đồ Use Case tổng quan}
+\label{fig:usecase-overview}
+\end{figure}
+
+\subsection{Chi tiết Use Case: Đăng nhập}
+
+\begin{table}[H]
+\centering
+\caption{Chi tiết Use Case - Đăng nhập}
+\label{tab:uc-login}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Use Case ID} & UC-AUTH-02 \\
+\hline
+\textbf{Tên} & Đăng nhập \\
+\hline
+\textbf{Actor} & Guest \\
+\hline
+\textbf{Mô tả} & Người dùng đăng nhập vào hệ thống để sử dụng các tính năng \\
+\hline
+\textbf{Tiền điều kiện} & Người dùng đã có tài khoản trong hệ thống \\
+\hline
+\textbf{Luồng chính} &
+1. Người dùng truy cập trang đăng nhập \newline
+2. Người dùng nhập email và password \newline
+3. Hệ thống gọi API POST /api/auth/login \newline
+4. Backend xác thực credentials \newline
+5. Backend tạo accessToken và refreshToken \newline
+6. Frontend lưu tokens và chuyển hướng đến trang chủ \\
+\hline
+\textbf{Luồng thay thế} &
+4a. Nếu credentials không hợp lệ: \newline
+- Hệ thống trả về lỗi 401 Unauthorized \newline
+- Frontend hiển thị thông báo lỗi \\
+\hline
+\textbf{Hậu điều kiện} & Người dùng được xác thực và có thể sử dụng hệ thống \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Chi tiết Use Case: Luyện Shadowing}
+
+\begin{table}[H]
+\centering
+\caption{Chi tiết Use Case - Luyện Shadowing}
+\label{tab:uc-shadowing}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Use Case ID} & UC-SHADOW-01 \\
+\hline
+\textbf{Tên} & Luyện Shadowing \\
+\hline
+\textbf{Actor} & User (đã đăng nhập) \\
+\hline
+\textbf{Mô tả} & Người dùng luyện phát âm bằng cách bắt chước audio từ video \\
+\hline
+\textbf{Tiền điều kiện} & Người dùng đã đăng nhập, đã chọn video để luyện tập \\
+\hline
+\textbf{Luồng chính} &
+1. Người dùng chọn segment từ video \newline
+2. Hệ thống phát audio của segment đó \newline
+3. Người dùng bấm nút ghi âm \newline
+4. Người dùng nói theo audio \newline
+5. Người dùng bấm dừng ghi âm \newline
+6. Frontend gửi audio đến API POST /api/practice/shadowing/attempts \newline
+7. Backend đánh giá và trả về ShadowingEvaluation \newline
+8. Frontend hiển thị score và feedback \\
+\hline
+\textbf{Luồng thay thế} &
+3a. Nếu browser không hỗ trợ microphone: \newline
+- Hiển thị thông báo yêu cầu cấp quyền \\
+\hline
+\textbf{Hậu điều kiện} & ShadowingAttempt được lưu vào database \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ============================================================================
+% CHƯƠNG 3: THIẾT KẾ HỆ THỐNG
+% ============================================================================
+
+\chapter{Thiết Kế Hệ Thống}
+
+\section{Kiến trúc tổng quan}
+
+Hệ thống Nihongo Master được thiết kế theo kiến trúc \textbf{Client-Server} với \textbf{RESTful API}:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    box/.style={draw, rectangle, rounded corners, minimum width=3cm, minimum height=1.5cm, align=center},
+    arrow/.style={->, thick}
+]
+
+% Client layer
+\node[box, fill=blue!20] (client) at (0,4) {Next.js Frontend\\(React + TypeScript)};
+
+% API layer
+\node[box, fill=green!20] (api) at (0,1.5) {Spring Boot Backend\\(Kotlin + REST API)};
+
+% Database layer
+\node[box, fill=orange!20] (db) at (0,-1) {MongoDB\\(Document Database)};
+
+% External services
+\node[box, fill=purple!20] (youtube) at (5,1.5) {YouTube API};
+
+% Arrows
+\draw[arrow] (client) -- node[right, font=\small] {HTTP/JSON} (api);
+\draw[arrow] (api) -- node[right, font=\small] {MongoDB Driver} (db);
+\draw[arrow] (api) -- node[above, font=\small] {REST} (youtube);
+
+\end{tikzpicture}
+\caption{Kiến trúc tổng quan hệ thống}
+\label{fig:architecture}
+\end{figure}
+
+\section{Thiết kế Backend}
+
+\subsection{Cấu trúc package}
+
+Backend được tổ chức theo cấu trúc package chuẩn của Spring Boot:
+
+\begin{verbatim}
+com.nihongomaster/
+├── config/          # Cấu hình (Security, MongoDB, CORS)
+├── controller/      # REST Controllers
+├── domain/          # Domain entities
+│   ├── forum/       # Post, Comment
+│   ├── user/        # User
+│   ├── video/       # Video
+│   └── vocabulary/  # VocabularyDeck
+├── dto/             # Data Transfer Objects
+├── repository/      # MongoDB Repositories
+├── security/        # JWT, Authentication
+└── service/         # Business Logic Services
+\end{verbatim}
+
+\subsection{Domain Entities}
+
+\subsubsection{User Entity}
+
+Entity \code{User} đại diện cho người dùng trong hệ thống:
+
+\begin{lstlisting}[caption={User Entity (User.kt)}, label={lst:user-entity}]
+@Document(collection = "users")
+data class User(
+    @Id
+    val id: String? = null,
+
+    @Indexed(unique = true)
+    val email: String,
+
+    @Indexed(unique = true)
+    val username: String,
+
+    val passwordHash: String,
+
+    val displayName: String? = null,
+    val avatarUrl: String? = null,
+    val bio: String? = null,
+
+    val role: UserRole = UserRole.USER,
+
+    val preferences: UserPreferences = UserPreferences(),
+    val progress: UserProgress = UserProgress(),
+
+    val isActive: Boolean = true,
+
+    @CreatedDate
+    val createdAt: Instant? = null,
+
+    @LastModifiedDate
+    val updatedAt: Instant? = null
+)
+
+enum class UserRole {
+    USER, PREMIUM, ADMIN
+}
+
+data class UserPreferences(
+    val dailyGoal: Int = 30,
+    val preferredLevel: JLPTLevel = JLPTLevel.N5,
+    val notificationsEnabled: Boolean = true,
+    val theme: String = "light"
+)
+
+data class UserProgress(
+    val totalStudyTime: Long = 0,
+    val currentStreak: Int = 0,
+    val longestStreak: Int = 0,
+    val lastStudyDate: LocalDate? = null,
+    val videosWatched: Int = 0,
+    val shadowingAttempts: Int = 0,
+    val dictationAttempts: Int = 0,
+    val vocabularyLearned: Int = 0
+)
+\end{lstlisting}
+
+\subsubsection{Video Entity}
+
+Entity \code{Video} lưu trữ thông tin video học tập:
+
+\begin{lstlisting}[caption={Video Entity (Video.kt)}, label={lst:video-entity}]
+@Document(collection = "videos")
+data class Video(
+    @Id
+    val id: String? = null,
+
+    @Indexed(unique = true)
+    val youtubeId: String,
+
+    @TextIndexed(weight = 3F)
+    val title: String,
+
+    @TextIndexed
+    val description: String? = null,
+
+    val thumbnailUrl: String? = null,
+    val channelTitle: String? = null,
+    val duration: Long? = null,
+
+    @Indexed
+    val category: VideoCategory = VideoCategory.GENERAL,
+
+    @Indexed
+    val level: JLPTLevel = JLPTLevel.N5,
+
+    val subtitles: List<SubtitleSegment> = emptyList(),
+
+    val viewCount: Long = 0,
+    val likeCount: Int = 0,
+
+    val tags: List<String> = emptyList(),
+    val isPublished: Boolean = true,
+
+    @CreatedDate
+    val createdAt: Instant? = null,
+
+    @LastModifiedDate
+    val updatedAt: Instant? = null
+)
+
+data class SubtitleSegment(
+    val index: Int,
+    val startTime: Double,
+    val endTime: Double,
+    val japanese: String,
+    val reading: String? = null,
+    val vietnamese: String? = null
+)
+
+enum class VideoCategory {
+    ANIME, DRAMA, NEWS, VLOG, MUSIC, EDUCATIONAL, GENERAL
+}
+
+enum class JLPTLevel {
+    N5, N4, N3, N2, N1
+}
+\end{lstlisting}
+
+\subsubsection{VocabularyDeck Entity}
+
+Entity \code{VocabularyDeck} quản lý bộ từ vựng:
+
+\begin{lstlisting}[caption={VocabularyDeck Entity (VocabularyDeck.kt)}, label={lst:deck-entity}]
+@Document(collection = "vocabulary_decks")
+data class VocabularyDeck(
+    @Id
+    val id: String? = null,
+
+    @TextIndexed(weight = 3F)
+    val name: String,
+
+    @TextIndexed
+    val description: String? = null,
+
+    @Indexed
+    val ownerId: String,
+
+    val ownerUsername: String,
+
+    @Indexed
+    val topic: DeckTopic = DeckTopic.CUSTOM,
+
+    @Indexed
+    val level: JLPTLevel? = null,
+
+    val sections: List<DeckSection> = emptyList(),
+
+    val totalItems: Int = 0,
+
+    @Indexed
+    val isPublic: Boolean = false,
+
+    val isOfficial: Boolean = false,
+
+    val cloneCount: Int = 0,
+    val likeCount: Int = 0,
+
+    val tags: List<String> = emptyList(),
+
+    @CreatedDate
+    val createdAt: Instant? = null,
+
+    @LastModifiedDate
+    val updatedAt: Instant? = null
+)
+
+data class DeckSection(
+    val id: String = UUID.randomUUID().toString(),
+    val name: String,
+    val description: String? = null,
+    val items: List<VocabularyItem> = emptyList(),
+    val orderIndex: Int = 0
+)
+
+data class VocabularyItem(
+    val id: String = UUID.randomUUID().toString(),
+    val word: String,
+    val reading: String? = null,
+    val meaning: String,
+    val example: String? = null,
+    val exampleMeaning: String? = null,
+    val notes: String? = null,
+    val orderIndex: Int = 0
+)
+
+enum class DeckTopic {
+    JLPT_N5, JLPT_N4, JLPT_N3, JLPT_N2, JLPT_N1,
+    DAILY_CONVERSATION, BUSINESS, TRAVEL, ANIME_MANGA, CUSTOM
+}
+\end{lstlisting}
+
+\subsubsection{Post và Comment Entities}
+
+Entities cho hệ thống diễn đàn:
+
+\begin{lstlisting}[caption={Post Entity (Post.kt)}, label={lst:post-entity}]
+@Document(collection = "posts")
+data class Post(
+    @Id
+    val id: String? = null,
+
+    @TextIndexed(weight = 3F)
+    val title: String,
+
+    @TextIndexed
+    val content: String,
+
+    @Indexed
+    val topic: ForumTopic,
+
+    @Indexed
+    val authorId: String,
+
+    val authorUsername: String,
+    val authorAvatarUrl: String? = null,
+
+    val likeCount: Int = 0,
+    val commentCount: Int = 0,
+    val viewCount: Long = 0,
+
+    val tags: List<String> = emptyList(),
+
+    val isPinned: Boolean = false,
+    val isLocked: Boolean = false,
+
+    @Indexed
+    val status: PostStatus = PostStatus.ACTIVE,
+
+    @CreatedDate
+    val createdAt: Instant? = null,
+
+    @LastModifiedDate
+    val updatedAt: Instant? = null
+)
+
+enum class ForumTopic {
+    JLPT_TIPS, LEARNING_RESOURCES, JAPAN_CULTURE, TRAVEL,
+    GRAMMAR_QUESTIONS, VOCABULARY_HELP, PRACTICE_PARTNERS,
+    SUCCESS_STORIES, GENERAL_DISCUSSION, ANNOUNCEMENTS, FEEDBACK
+}
+
+enum class PostStatus {
+    ACTIVE, HIDDEN, DELETED
+}
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Comment Entity (Comment.kt)}, label={lst:comment-entity}]
+@Document(collection = "comments")
+data class Comment(
+    @Id
+    val id: String? = null,
+
+    @Indexed
+    val postId: String,
+
+    @Indexed
+    val authorId: String,
+
+    val authorUsername: String,
+    val authorAvatarUrl: String? = null,
+
+    val content: String,
+
+    val parentCommentId: String? = null,
+
+    val likeCount: Int = 0,
+    val replyCount: Int = 0,
+
+    val isEdited: Boolean = false,
+
+    @Indexed
+    val status: CommentStatus = CommentStatus.ACTIVE,
+
+    @CreatedDate
+    val createdAt: Instant? = null,
+
+    @LastModifiedDate
+    val updatedAt: Instant? = null
+)
+
+enum class CommentStatus {
+    ACTIVE, HIDDEN, DELETED
+}
+\end{lstlisting}
+
+\subsubsection{Practice Attempt Entities}
+
+Entities cho hệ thống luyện tập:
+
+\begin{lstlisting}[caption={ShadowingAttempt Entity}, label={lst:shadowing-entity}]
+@Document(collection = "shadowing_attempts")
+data class ShadowingAttempt(
+    @Id
+    val id: String? = null,
+
+    @Indexed
+    val userId: String,
+
+    @Indexed
+    val videoId: String,
+
+    val segmentIndex: Int,
+
+    val audioUrl: String? = null,
+
+    val evaluation: ShadowingEvaluation? = null,
+
+    @CreatedDate
+    val createdAt: Instant? = null
+)
+
+data class ShadowingEvaluation(
+    val overallScore: Double,
+    val pronunciationScore: Double,
+    val fluencyScore: Double,
+    val feedback: String? = null,
+    val detailedAnalysis: Map<String, Any>? = null
+)
+\end{lstlisting}
+
+\begin{lstlisting}[caption={DictationAttempt Entity}, label={lst:dictation-entity}]
+@Document(collection = "dictation_attempts")
+data class DictationAttempt(
+    @Id
+    val id: String? = null,
+
+    @Indexed
+    val userId: String,
+
+    @Indexed
+    val videoId: String,
+
+    val segmentIndex: Int,
+
+    val userInputText: String,
+
+    val evaluation: DictationEvaluation? = null,
+
+    @CreatedDate
+    val createdAt: Instant? = null
+)
+
+data class DictationEvaluation(
+    val accuracy: Double,
+    val correctText: String,
+    val mistakes: List<DictationMistake> = emptyList(),
+    val feedback: String? = null
+)
+
+data class DictationMistake(
+    val position: Int,
+    val expected: String,
+    val actual: String,
+    val type: MistakeType
+)
+
+enum class MistakeType {
+    MISSING, EXTRA, WRONG, TYPO
+}
+\end{lstlisting}
+
+\section{Thiết kế Database}
+
+\subsection{MongoDB Collections}
+
+Hệ thống sử dụng MongoDB với các collections sau:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    entity/.style={draw, rectangle, rounded corners, minimum width=4cm, minimum height=3cm, align=left, font=\small\ttfamily, fill=entitycolor},
+    relationship/.style={->, thick, >=stealth}
+]
+
+% Entities
+\node[entity] (users) at (0,6) {
+    \textbf{users}\\
+    \_id: ObjectId\\
+    email: String\\
+    username: String\\
+    passwordHash: String\\
+    role: UserRole\\
+    preferences: Object\\
+    progress: Object
+};
+
+\node[entity] (videos) at (6,6) {
+    \textbf{videos}\\
+    \_id: ObjectId\\
+    youtubeId: String\\
+    title: String\\
+    category: VideoCategory\\
+    level: JLPTLevel\\
+    subtitles: Array
+};
+
+\node[entity] (decks) at (0,1.5) {
+    \textbf{vocabulary\_decks}\\
+    \_id: ObjectId\\
+    name: String\\
+    ownerId: String\\
+    topic: DeckTopic\\
+    sections: Array\\
+    isPublic: Boolean
+};
+
+\node[entity] (posts) at (6,1.5) {
+    \textbf{posts}\\
+    \_id: ObjectId\\
+    title: String\\
+    content: String\\
+    topic: ForumTopic\\
+    authorId: String\\
+    likeCount: Int
+};
+
+\node[entity] (comments) at (12,1.5) {
+    \textbf{comments}\\
+    \_id: ObjectId\\
+    postId: String\\
+    authorId: String\\
+    content: String\\
+    parentCommentId: String?
+};
+
+\node[entity] (shadowing) at (0,-3) {
+    \textbf{shadowing\_attempts}\\
+    \_id: ObjectId\\
+    userId: String\\
+    videoId: String\\
+    segmentIndex: Int\\
+    evaluation: Object
+};
+
+\node[entity] (dictation) at (6,-3) {
+    \textbf{dictation\_attempts}\\
+    \_id: ObjectId\\
+    userId: String\\
+    videoId: String\\
+    userInputText: String\\
+    evaluation: Object
+};
+
+% Relationships
+\draw[relationship] (decks) -- node[above, font=\tiny] {ownerId} (users);
+\draw[relationship] (posts) -- node[above, font=\tiny] {authorId} (users);
+\draw[relationship] (comments) -- node[above, font=\tiny] {postId} (posts);
+\draw[relationship] (shadowing) -- node[left, font=\tiny] {userId} (users);
+\draw[relationship] (shadowing) -- node[above, font=\tiny] {videoId} (videos);
+\draw[relationship] (dictation) -- node[above, font=\tiny] {videoId} (videos);
+
+\end{tikzpicture}
+\caption{Sơ đồ MongoDB Collections}
+\label{fig:mongodb-schema}
+\end{figure}
+
+\section{Thiết kế API}
+
+\subsection{Authentication API}
+
+\begin{table}[H]
+\centering
+\caption{Authentication API Endpoints}
+\label{tab:api-auth}
+\begin{tabularx}{\textwidth}{|l|l|X|l|}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Mô tả} & \textbf{Auth} \\
+\hline
+POST & /api/auth/register & Đăng ký tài khoản mới & No \\
+\hline
+POST & /api/auth/login & Đăng nhập, nhận JWT tokens & No \\
+\hline
+POST & /api/auth/refresh & Làm mới Access Token & No \\
+\hline
+POST & /api/auth/logout & Đăng xuất thiết bị hiện tại & Yes \\
+\hline
+POST & /api/auth/logout-all & Đăng xuất tất cả thiết bị & Yes \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{lstlisting}[caption={AuthController.kt}, label={lst:auth-controller}]
+@RestController
+@RequestMapping("/api/auth")
+class AuthController(
+    private val authService: AuthService
+) {
+    @PostMapping("/register")
+    fun register(@Valid @RequestBody request: RegisterRequest):
+        ResponseEntity<AuthResponse> {
+        val response = authService.register(request)
+        return ResponseEntity.status(HttpStatus.CREATED).body(response)
+    }
+
+    @PostMapping("/login")
+    fun login(@Valid @RequestBody request: LoginRequest):
+        ResponseEntity<AuthResponse> {
+        val response = authService.login(request)
+        return ResponseEntity.ok(response)
+    }
+
+    @PostMapping("/refresh")
+    fun refresh(@Valid @RequestBody request: RefreshTokenRequest):
+        ResponseEntity<AuthResponse> {
+        val response = authService.refreshToken(request)
+        return ResponseEntity.ok(response)
+    }
+
+    @PostMapping("/logout")
+    @PreAuthorize("isAuthenticated()")
+    fun logout(@CurrentUser user: UserPrincipal): ResponseEntity<Void> {
+        authService.logout(user.id)
+        return ResponseEntity.noContent().build()
+    }
+
+    @PostMapping("/logout-all")
+    @PreAuthorize("isAuthenticated()")
+    fun logoutAll(@CurrentUser user: UserPrincipal): ResponseEntity<Void> {
+        authService.logoutAll(user.id)
+        return ResponseEntity.noContent().build()
+    }
+}
+\end{lstlisting}
+
+\subsection{Video API}
+
+\begin{table}[H]
+\centering
+\caption{Video API Endpoints}
+\label{tab:api-video}
+\begin{tabularx}{\textwidth}{|l|l|X|l|}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Mô tả} & \textbf{Auth} \\
+\hline
+GET & /api/videos & Lấy danh sách video (paginated) & No \\
+\hline
+GET & /api/videos/\{id\} & Lấy chi tiết video theo ID & No \\
+\hline
+GET & /api/videos/search & Tìm kiếm video theo từ khóa & No \\
+\hline
+GET & /api/videos/\{id\}/segments/\{index\} & Lấy segment cụ thể & No \\
+\hline
+POST & /api/videos & Tạo video mới (Admin) & Admin \\
+\hline
+PUT & /api/videos/\{id\} & Cập nhật video (Admin) & Admin \\
+\hline
+DELETE & /api/videos/\{id\} & Xóa video (Admin) & Admin \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Vocabulary Deck API}
+
+\begin{table}[H]
+\centering
+\caption{Vocabulary Deck API Endpoints}
+\label{tab:api-deck}
+\begin{tabularx}{\textwidth}{|l|l|X|l|}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Mô tả} & \textbf{Auth} \\
+\hline
+GET & /api/vocabulary/decks & Lấy danh sách deck & No \\
+\hline
+GET & /api/vocabulary/decks/\{id\} & Lấy chi tiết deck & No \\
+\hline
+GET & /api/vocabulary/decks/my & Lấy deck của user hiện tại & Yes \\
+\hline
+POST & /api/vocabulary/decks & Tạo deck mới & Yes \\
+\hline
+PUT & /api/vocabulary/decks/\{id\} & Cập nhật deck & Yes \\
+\hline
+DELETE & /api/vocabulary/decks/\{id\} & Xóa deck & Yes \\
+\hline
+POST & /api/vocabulary/decks/\{id\}/sections & Thêm section & Yes \\
+\hline
+POST & /api/vocabulary/decks/\{id\}/sections/\{sectionId\}/items & Thêm item & Yes \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Practice API (Shadowing \& Dictation)}
+
+\begin{table}[H]
+\centering
+\caption{Shadowing Practice API Endpoints}
+\label{tab:api-shadowing}
+\begin{tabularx}{\textwidth}{|l|l|X|l|}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Mô tả} & \textbf{Auth} \\
+\hline
+POST & /api/practice/shadowing/attempts & Gửi bài tập shadowing & Yes \\
+\hline
+GET & /api/practice/shadowing/attempts & Lấy lịch sử attempts & Yes \\
+\hline
+GET & /api/practice/shadowing/attempts/\{id\} & Lấy chi tiết attempt & Yes \\
+\hline
+GET & /api/practice/shadowing/progress & Lấy tiến độ tổng quan & Yes \\
+\hline
+GET & /api/practice/shadowing/stats & Lấy thống kê chi tiết & Yes \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Dictation Practice API Endpoints}
+\label{tab:api-dictation}
+\begin{tabularx}{\textwidth}{|l|l|X|l|}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Mô tả} & \textbf{Auth} \\
+\hline
+POST & /api/practice/dictation/attempts & Gửi bài tập dictation & Yes \\
+\hline
+GET & /api/practice/dictation/attempts & Lấy lịch sử attempts & Yes \\
+\hline
+GET & /api/practice/dictation/attempts/\{id\} & Lấy chi tiết attempt & Yes \\
+\hline
+GET & /api/practice/dictation/progress & Lấy tiến độ tổng quan & Yes \\
+\hline
+GET & /api/practice/dictation/stats & Lấy thống kê chi tiết & Yes \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Forum API}
+
+\begin{table}[H]
+\centering
+\caption{Forum API Endpoints}
+\label{tab:api-forum}
+\begin{tabularx}{\textwidth}{|l|l|X|l|}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Mô tả} & \textbf{Auth} \\
+\hline
+GET & /api/forum/posts & Lấy danh sách bài viết & No \\
+\hline
+GET & /api/forum/posts/\{id\} & Lấy chi tiết bài viết & No \\
+\hline
+GET & /api/forum/posts/topic/\{topic\} & Lấy bài viết theo topic & No \\
+\hline
+GET & /api/forum/posts/search & Tìm kiếm bài viết & No \\
+\hline
+GET & /api/forum/posts/trending & Lấy bài viết trending & No \\
+\hline
+GET & /api/forum/posts/popular & Lấy bài viết popular & No \\
+\hline
+POST & /api/forum/posts & Tạo bài viết mới & Yes \\
+\hline
+PUT & /api/forum/posts/\{id\} & Cập nhật bài viết & Yes \\
+\hline
+DELETE & /api/forum/posts/\{id\} & Xóa bài viết & Yes \\
+\hline
+POST & /api/forum/posts/\{id\}/like/toggle & Toggle like bài viết & Yes \\
+\hline
+POST & /api/forum/posts/\{id\}/comments & Tạo comment & Yes \\
+\hline
+GET & /api/forum/posts/\{id\}/comments & Lấy comments của bài viết & No \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ============================================================================
+% CHƯƠNG 4: TRIỂN KHAI
+% ============================================================================
+
+\chapter{Triển Khai Hệ Thống}
+
+\section{Frontend Implementation}
+
+\subsection{Cấu trúc Next.js App Router}
+
+Frontend sử dụng Next.js 14 với App Router:
+
+\begin{verbatim}
+frontend/src/
+├── app/
+│   ├── (main)/           # Layout chính với sidebar
+│   │   ├── community/    # Trang diễn đàn
+│   │   ├── history/      # Lịch sử học tập
+│   │   ├── learn/
+│   │   │   ├── videos/   # Danh sách video
+│   │   │   └── vocabulary/ # Học từ vựng
+│   │   ├── practice/
+│   │   │   ├── shadowing/
+│   │   │   └── dictation/
+│   │   └── profile/      # Trang cá nhân
+│   ├── auth/             # Đăng nhập/Đăng ký
+│   └── layout.tsx
+├── components/           # React components
+└── lib/
+    ├── api-client.ts     # API client với fetch
+    └── hooks.ts          # Custom React hooks
+\end{verbatim}
+
+\subsection{API Client}
+
+\begin{lstlisting}[style=typescriptstyle, caption={API Client (api-client.ts)}, label={lst:api-client}]
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
+    'http://localhost:8080';
+
+// Token management
+const tokenManager = {
+  getAccessToken: () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('accessToken');
+    }
+    return null;
+  },
+
+  setTokens: (accessToken: string, refreshToken: string) => {
+    localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
+  },
+
+  clearTokens: () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+  }
+};
+
+// Fetch with authentication
+async function fetchWithAuth(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const accessToken = tokenManager.getAccessToken();
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  // Handle 401 - try refresh token
+  if (response.status === 401 && accessToken) {
+    const refreshed = await authApi.refresh();
+    if (refreshed) {
+      headers['Authorization'] =
+          `Bearer ${tokenManager.getAccessToken()}`;
+      return fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        headers,
+      });
+    }
+  }
+
+  return response;
+}
+
+// Auth API
+export const authApi = {
+  login: async (email: string, password: string) => {
+    const response = await fetchWithAuth('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await response.json();
+    if (response.ok) {
+      tokenManager.setTokens(data.accessToken, data.refreshToken);
+    }
+    return { response, data };
+  },
+
+  register: async (email: string, username: string, password: string) => {
+    const response = await fetchWithAuth('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, username, password }),
+    });
+    return response.json();
+  },
+
+  refresh: async () => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) return false;
+
+    const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      tokenManager.setTokens(data.accessToken, data.refreshToken);
+      return true;
+    }
+
+    tokenManager.clearTokens();
+    return false;
+  },
+
+  logout: async () => {
+    await fetchWithAuth('/api/auth/logout', { method: 'POST' });
+    tokenManager.clearTokens();
+  }
+};
+
+// Video API
+export const videoApi = {
+  getVideos: async (params?: {
+    category?: string;
+    level?: string;
+    page?: number
+  }) => {
+    const query = new URLSearchParams(params as any).toString();
+    const response = await fetchWithAuth(
+        `/api/videos${query ? `?${query}` : ''}`
+    );
+    return response.json();
+  },
+
+  getVideo: async (id: string) => {
+    const response = await fetchWithAuth(`/api/videos/${id}`);
+    return response.json();
+  },
+
+  searchVideos: async (q: string) => {
+    const response = await fetchWithAuth(
+        `/api/videos/search?q=${encodeURIComponent(q)}`
+    );
+    return response.json();
+  }
+};
+
+// Forum API
+export const forumApi = {
+  getPosts: async (params?: { topic?: string; page?: number }) => {
+    const query = new URLSearchParams(params as any).toString();
+    const response = await fetchWithAuth(
+        `/api/forum/posts${query ? `?${query}` : ''}`
+    );
+    return response.json();
+  },
+
+  getPost: async (id: string) => {
+    const response = await fetchWithAuth(`/api/forum/posts/${id}`);
+    return response.json();
+  },
+
+  createPost: async (data: CreatePostRequest) => {
+    const response = await fetchWithAuth('/api/forum/posts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  toggleLike: async (postId: string) => {
+    const response = await fetchWithAuth(
+        `/api/forum/posts/${postId}/like/toggle`,
+        { method: 'POST' }
+    );
+    return response.json();
+  },
+
+  createComment: async (postId: string, content: string) => {
+    const response = await fetchWithAuth(
+        `/api/forum/posts/${postId}/comments`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ content }),
+        }
+    );
+    return response.json();
+  }
+};
+
+// Shadowing API
+export const shadowingApi = {
+  submitAttempt: async (data: CreateShadowingAttemptRequest) => {
+    const response = await fetchWithAuth(
+        '/api/practice/shadowing/attempts',
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+    );
+    return response.json();
+  },
+
+  getAttempts: async (params?: { videoId?: string; page?: number }) => {
+    const query = new URLSearchParams(params as any).toString();
+    const response = await fetchWithAuth(
+        `/api/practice/shadowing/attempts${query ? `?${query}` : ''}`
+    );
+    return response.json();
+  },
+
+  getProgress: async () => {
+    const response = await fetchWithAuth(
+        '/api/practice/shadowing/progress'
+    );
+    return response.json();
+  }
+};
+
+// Dictation API
+export const dictationApi = {
+  submitAttempt: async (data: CreateDictationAttemptRequest) => {
+    const response = await fetchWithAuth(
+        '/api/practice/dictation/attempts',
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+    );
+    return response.json();
+  },
+
+  getAttempts: async (params?: { videoId?: string; page?: number }) => {
+    const query = new URLSearchParams(params as any).toString();
+    const response = await fetchWithAuth(
+        `/api/practice/dictation/attempts${query ? `?${query}` : ''}`
+    );
+    return response.json();
+  }
+};
+\end{lstlisting}
+
+\section{Backend Implementation}
+
+\subsection{JWT Security Configuration}
+
+\begin{lstlisting}[caption={Security Configuration}, label={lst:security-config}]
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+class SecurityConfig(
+    private val jwtAuthenticationFilter: JwtAuthenticationFilter,
+    private val userDetailsService: CustomUserDetailsService
+) {
+    @Bean
+    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
+        http
+            .csrf { it.disable() }
+            .cors { it.configurationSource(corsConfigurationSource()) }
+            .sessionManagement {
+                it.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            }
+            .authorizeHttpRequests { auth ->
+                auth
+                    .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/videos/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/forum/posts/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/vocabulary/decks/**").permitAll()
+                    .anyRequest().authenticated()
+            }
+            .addFilterBefore(
+                jwtAuthenticationFilter,
+                UsernamePasswordAuthenticationFilter::class.java
+            )
+
+        return http.build()
+    }
+
+    @Bean
+    fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
+}
+\end{lstlisting}
+
+\subsection{Service Layer Example}
+
+\begin{lstlisting}[caption={PostService Implementation}, label={lst:post-service}]
+@Service
+class PostService(
+    private val postRepository: PostRepository,
+    private val userRepository: UserRepository
+) {
+    fun createPost(request: CreatePostRequest, userId: String): PostResponse {
+        val user = userRepository.findById(userId)
+            .orElseThrow { NotFoundException("User not found") }
+
+        val post = Post(
+            title = request.title,
+            content = request.content,
+            topic = request.topic,
+            authorId = userId,
+            authorUsername = user.username,
+            authorAvatarUrl = user.avatarUrl,
+            tags = request.tags ?: emptyList()
+        )
+
+        val savedPost = postRepository.save(post)
+        return savedPost.toResponse()
+    }
+
+    fun getPosts(pageable: Pageable): Page<PostSummaryResponse> {
+        return postRepository
+            .findByStatus(PostStatus.ACTIVE, pageable)
+            .map { it.toSummaryResponse() }
+    }
+
+    fun getPostsByTopic(
+        topic: ForumTopic,
+        pageable: Pageable
+    ): Page<PostSummaryResponse> {
+        return postRepository
+            .findByTopicAndStatus(topic, PostStatus.ACTIVE, pageable)
+            .map { it.toSummaryResponse() }
+    }
+
+    fun searchPosts(query: String, pageable: Pageable): Page<PostSummaryResponse> {
+        return postRepository
+            .searchByTitleOrContent(query, pageable)
+            .map { it.toSummaryResponse() }
+    }
+
+    @Transactional
+    fun updatePost(
+        postId: String,
+        request: UpdatePostRequest,
+        userId: String
+    ): PostResponse {
+        val post = postRepository.findById(postId)
+            .orElseThrow { NotFoundException("Post not found") }
+
+        if (!post.canBeEditedBy(userId, false)) {
+            throw ForbiddenException("You can only edit your own posts")
+        }
+
+        val updatedPost = post.copy(
+            title = request.title ?: post.title,
+            content = request.content ?: post.content,
+            tags = request.tags ?: post.tags
+        )
+
+        return postRepository.save(updatedPost).toResponse()
+    }
+
+    @Transactional
+    fun deletePost(postId: String, userId: String) {
+        val post = postRepository.findById(postId)
+            .orElseThrow { NotFoundException("Post not found") }
+
+        if (!post.canBeDeletedBy(userId, false)) {
+            throw ForbiddenException("You can only delete your own posts")
+        }
+
+        val deletedPost = post.copy(status = PostStatus.DELETED)
+        postRepository.save(deletedPost)
+    }
+}
+\end{lstlisting}
+
+% ============================================================================
+% CHƯƠNG 5: BIỂU ĐỒ SEQUENCE
+% ============================================================================
+
+\chapter{Biểu Đồ Sequence}
+
+\section{Sequence Diagram: Đăng nhập}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    participant/.style={draw, rectangle, minimum width=2cm, minimum height=0.8cm, font=\small},
+    lifeline/.style={dashed},
+    message/.style={->, >=stealth, thick},
+    return/.style={->, >=stealth, dashed}
+]
+
+% Participants
+\node[participant] (client) at (0,0) {Client};
+\node[participant] (controller) at (4,0) {AuthController};
+\node[participant] (service) at (8,0) {AuthService};
+\node[participant] (repo) at (12,0) {UserRepository};
+
+% Lifelines
+\draw[lifeline] (0,-0.4) -- (0,-10);
+\draw[lifeline] (4,-0.4) -- (4,-10);
+\draw[lifeline] (8,-0.4) -- (8,-10);
+\draw[lifeline] (12,-0.4) -- (12,-10);
+
+% Messages
+\draw[message] (0,-1) -- node[above, font=\tiny] {POST /api/auth/login} (4,-1);
+\draw[message] (4,-1.5) -- node[above, font=\tiny] {login(request)} (8,-1.5);
+\draw[message] (8,-2) -- node[above, font=\tiny] {findByEmail(email)} (12,-2);
+\draw[return] (12,-2.5) -- node[above, font=\tiny] {User?} (8,-2.5);
+
+% Activation boxes
+\draw[fill=blue!20] (7.8,-1.5) rectangle (8.2,-4);
+
+% More messages
+\node[font=\tiny, align=left] at (10,-3.2) {validate password\\generate JWT tokens};
+
+\draw[return] (8,-4) -- node[above, font=\tiny] {AuthResponse} (4,-4);
+\draw[return] (4,-4.5) -- node[above, font=\tiny] {200 OK + tokens} (0,-4.5);
+
+% Alt fragment for error
+\draw[thick] (-0.5,-5.5) rectangle (12.5,-7.5);
+\node[font=\tiny\bfseries] at (0,-5.7) {alt [invalid credentials]};
+\draw[return, red] (8,-6.5) -- node[above, font=\tiny, red] {throw UnauthorizedException} (4,-6.5);
+\draw[return, red] (4,-7) -- node[above, font=\tiny, red] {401 Unauthorized} (0,-7);
+
+\end{tikzpicture}
+\caption{Sequence Diagram - Đăng nhập}
+\label{fig:seq-login}
+\end{figure}
+
+\section{Sequence Diagram: Luyện Shadowing}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    participant/.style={draw, rectangle, minimum width=1.8cm, minimum height=0.8cm, font=\scriptsize},
+    lifeline/.style={dashed},
+    message/.style={->, >=stealth, thick},
+    return/.style={->, >=stealth, dashed}
+]
+
+% Participants
+\node[participant] (user) at (0,0) {User};
+\node[participant] (ui) at (2.5,0) {ShadowingUI};
+\node[participant] (api) at (5,0) {API Client};
+\node[participant] (ctrl) at (8,0) {Controller};
+\node[participant] (svc) at (11,0) {Service};
+\node[participant] (repo) at (14,0) {Repository};
+
+% Lifelines
+\draw[lifeline] (0,-0.4) -- (0,-12);
+\draw[lifeline] (2.5,-0.4) -- (2.5,-12);
+\draw[lifeline] (5,-0.4) -- (5,-12);
+\draw[lifeline] (8,-0.4) -- (8,-12);
+\draw[lifeline] (11,-0.4) -- (11,-12);
+\draw[lifeline] (14,-0.4) -- (14,-12);
+
+% Messages
+\draw[message] (0,-1) -- node[above, font=\tiny] {Select segment} (2.5,-1);
+\draw[message] (2.5,-1.5) -- node[above, font=\tiny] {Play audio} (2.5,-2);
+\draw[message] (0,-2.5) -- node[above, font=\tiny] {Start recording} (2.5,-2.5);
+\draw[message] (0,-3.5) -- node[above, font=\tiny] {Stop recording} (2.5,-3.5);
+\draw[message] (2.5,-4) -- node[above, font=\tiny] {submitAttempt()} (5,-4);
+\draw[message] (5,-4.5) -- node[above, font=\tiny] {POST /attempts} (8,-4.5);
+\draw[message] (8,-5) -- node[above, font=\tiny] {createAttempt()} (11,-5);
+
+% Evaluation note
+\node[draw, fill=yellow!20, font=\tiny, align=left] at (12,-6) {Evaluate\\pronunciation};
+
+\draw[message] (11,-7) -- node[above, font=\tiny] {save(attempt)} (14,-7);
+\draw[return] (14,-7.5) -- node[above, font=\tiny] {saved} (11,-7.5);
+\draw[return] (11,-8) -- node[above, font=\tiny] {AttemptResponse} (8,-8);
+\draw[return] (8,-8.5) -- node[above, font=\tiny] {JSON response} (5,-8.5);
+\draw[return] (5,-9) -- node[above, font=\tiny] {evaluation} (2.5,-9);
+\draw[message] (2.5,-9.5) -- node[above, font=\tiny] {Show score \& feedback} (0,-9.5);
+
+\end{tikzpicture}
+\caption{Sequence Diagram - Luyện Shadowing}
+\label{fig:seq-shadowing}
+\end{figure}
+
+\section{Sequence Diagram: Tạo bài viết Forum}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    participant/.style={draw, rectangle, minimum width=2cm, minimum height=0.8cm, font=\small},
+    lifeline/.style={dashed},
+    message/.style={->, >=stealth, thick},
+    return/.style={->, >=stealth, dashed}
+]
+
+% Participants
+\node[participant] (client) at (0,0) {Client};
+\node[participant] (ctrl) at (4,0) {PostController};
+\node[participant] (svc) at (8,0) {PostService};
+\node[participant] (userRepo) at (12,0) {UserRepo};
+\node[participant] (postRepo) at (12,-2) {PostRepo};
+
+% Lifelines
+\draw[lifeline] (0,-0.4) -- (0,-9);
+\draw[lifeline] (4,-0.4) -- (4,-9);
+\draw[lifeline] (8,-0.4) -- (8,-9);
+\draw[lifeline] (12,-0.4) -- (12,-9);
+
+% Messages
+\draw[message] (0,-1) -- node[above, font=\tiny] {POST /api/forum/posts} (4,-1);
+\draw[message] (4,-1.5) -- node[above, font=\tiny] {createPost(request, userId)} (8,-1.5);
+\draw[message] (8,-2) -- node[above, font=\tiny] {findById(userId)} (12,-2);
+\draw[return] (12,-2.5) -- node[above, font=\tiny] {User} (8,-2.5);
+
+% Create post
+\node[draw, fill=yellow!20, font=\tiny] at (10,-3.5) {Create Post entity};
+
+\draw[message] (8,-4.5) -- node[above, font=\tiny] {save(post)} (12,-4.5);
+\draw[return] (12,-5) -- node[above, font=\tiny] {savedPost} (8,-5);
+\draw[return] (8,-5.5) -- node[above, font=\tiny] {PostResponse} (4,-5.5);
+\draw[return] (4,-6) -- node[above, font=\tiny] {201 Created} (0,-6);
+
+\end{tikzpicture}
+\caption{Sequence Diagram - Tạo bài viết Forum}
+\label{fig:seq-create-post}
+\end{figure}
+
+% ============================================================================
+% CHƯƠNG 6: KIỂM THỬ
+% ============================================================================
+
+\chapter{Kiểm Thử}
+
+\section{Kiểm thử API}
+
+\subsection{Test Cases cho Authentication}
+
+\begin{table}[H]
+\centering
+\caption{Test Cases - Authentication API}
+\label{tab:test-auth}
+\begin{tabularx}{\textwidth}{|l|X|X|l|}
+\hline
+\textbf{ID} & \textbf{Mô tả} & \textbf{Expected Result} & \textbf{Status} \\
+\hline
+TC-AUTH-01 & Đăng ký với email/username hợp lệ & 201 Created, trả về user info & Pass \\
+\hline
+TC-AUTH-02 & Đăng ký với email đã tồn tại & 409 Conflict & Pass \\
+\hline
+TC-AUTH-03 & Đăng nhập với credentials đúng & 200 OK, trả về tokens & Pass \\
+\hline
+TC-AUTH-04 & Đăng nhập với password sai & 401 Unauthorized & Pass \\
+\hline
+TC-AUTH-05 & Refresh token hợp lệ & 200 OK, trả về tokens mới & Pass \\
+\hline
+TC-AUTH-06 & Refresh token hết hạn & 401 Unauthorized & Pass \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Test Cases cho Video API}
+
+\begin{table}[H]
+\centering
+\caption{Test Cases - Video API}
+\label{tab:test-video}
+\begin{tabularx}{\textwidth}{|l|X|X|l|}
+\hline
+\textbf{ID} & \textbf{Mô tả} & \textbf{Expected Result} & \textbf{Status} \\
+\hline
+TC-VID-01 & Lấy danh sách videos & 200 OK, trả về Page<Video> & Pass \\
+\hline
+TC-VID-02 & Lấy video theo ID tồn tại & 200 OK, trả về Video & Pass \\
+\hline
+TC-VID-03 & Lấy video theo ID không tồn tại & 404 Not Found & Pass \\
+\hline
+TC-VID-04 & Tìm kiếm video với từ khóa & 200 OK, trả về kết quả phù hợp & Pass \\
+\hline
+TC-VID-05 & Lọc video theo category & 200 OK, chỉ trả về videos có category đúng & Pass \\
+\hline
+TC-VID-06 & Lọc video theo JLPT level & 200 OK, chỉ trả về videos có level đúng & Pass \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Test Cases cho Forum API}
+
+\begin{table}[H]
+\centering
+\caption{Test Cases - Forum API}
+\label{tab:test-forum}
+\begin{tabularx}{\textwidth}{|l|X|X|l|}
+\hline
+\textbf{ID} & \textbf{Mô tả} & \textbf{Expected Result} & \textbf{Status} \\
+\hline
+TC-FORUM-01 & Tạo post khi đã đăng nhập & 201 Created & Pass \\
+\hline
+TC-FORUM-02 & Tạo post khi chưa đăng nhập & 401 Unauthorized & Pass \\
+\hline
+TC-FORUM-03 & Lấy posts theo topic & 200 OK, chỉ trả về posts có topic đúng & Pass \\
+\hline
+TC-FORUM-04 & Sửa post của mình & 200 OK, post được cập nhật & Pass \\
+\hline
+TC-FORUM-05 & Sửa post của người khác & 403 Forbidden & Pass \\
+\hline
+TC-FORUM-06 & Toggle like post & 200 OK, likeCount thay đổi & Pass \\
+\hline
+TC-FORUM-07 & Tạo comment & 201 Created & Pass \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Kiểm thử giao diện}
+
+\subsection{Test Cases cho Shadowing Practice}
+
+\begin{table}[H]
+\centering
+\caption{Test Cases - Shadowing UI}
+\label{tab:test-shadowing-ui}
+\begin{tabularx}{\textwidth}{|l|X|X|l|}
+\hline
+\textbf{ID} & \textbf{Mô tả} & \textbf{Expected Result} & \textbf{Status} \\
+\hline
+TC-UI-SH-01 & Hiển thị danh sách segments & Segments hiển thị đúng với thời gian & Pass \\
+\hline
+TC-UI-SH-02 & Phát audio segment & Audio phát đúng đoạn đã chọn & Pass \\
+\hline
+TC-UI-SH-03 & Ghi âm giọng nói & Recording indicator hiển thị & Pass \\
+\hline
+TC-UI-SH-04 & Gửi bài tập & Loading state, sau đó hiện score & Pass \\
+\hline
+TC-UI-SH-05 & Hiển thị feedback & Feedback text và score hiển thị đúng & Pass \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ============================================================================
+% CHƯƠNG 7: KẾT LUẬN
+% ============================================================================
+
+\chapter{Kết Luận}
+
+\section{Kết quả đạt được}
+
+Dự án Nihongo Master đã hoàn thành các mục tiêu đề ra:
+
+\begin{enumerate}
+    \item \textbf{Hệ thống Authentication}: Triển khai đầy đủ với JWT (Access Token + Refresh Token), hỗ trợ đăng ký, đăng nhập, làm mới token, đăng xuất đơn/đa thiết bị.
+
+    \item \textbf{Module Video Learning}: Tích hợp video YouTube với phụ đề phân đoạn (SubtitleSegment), hỗ trợ lọc theo VideoCategory và JLPTLevel.
+
+    \item \textbf{Practice Modules}:
+    \begin{itemize}
+        \item Shadowing: Ghi âm, đánh giá phát âm với ShadowingEvaluation
+        \item Dictation: Nhập văn bản, đánh giá với DictationEvaluation và DictationMistake
+    \end{itemize}
+
+    \item \textbf{Vocabulary System}: Quản lý VocabularyDeck với DeckSection và VocabularyItem, hỗ trợ chia sẻ công khai.
+
+    \item \textbf{Community Forum}: Hệ thống diễn đàn với Post, Comment, hỗ trợ ForumTopic, like/unlike, tìm kiếm.
+
+    \item \textbf{User Progress Tracking}: Theo dõi tiến độ học tập với UserProgress embedded trong User entity.
+\end{enumerate}
+
+\section{Công nghệ và kiến trúc}
+
+\begin{itemize}
+    \item \textbf{Backend}: Kotlin + Spring Boot 3 với Spring Security, Spring Data MongoDB
+    \item \textbf{Frontend}: Next.js 14 với App Router, TypeScript, Tailwind CSS
+    \item \textbf{Database}: MongoDB với document-based schema
+    \item \textbf{API}: RESTful với JSON, authentication qua Bearer token
+\end{itemize}
+
+\section{Hạn chế và hướng phát triển}
+
+\subsection{Hạn chế hiện tại}
+
+\begin{itemize}
+    \item Chưa có speech recognition thực sự cho đánh giá Shadowing
+    \item Chưa có hệ thống notification real-time
+    \item Chưa hỗ trợ offline mode
+\end{itemize}
+
+\subsection{Hướng phát triển}
+
+\begin{itemize}
+    \item Tích hợp AI speech recognition (Google Cloud Speech, Azure Speech)
+    \item Thêm WebSocket cho real-time notifications
+    \item Phát triển mobile app (React Native/Flutter)
+    \item Tích hợp gamification (badges, leaderboards)
+    \item Thêm tính năng chat/video call với native speakers
+\end{itemize}
+
+\section{Bài học kinh nghiệm}
+
+\begin{enumerate}
+    \item \textbf{Kiến trúc}: Tầm quan trọng của việc thiết kế domain model rõ ràng từ đầu.
+    \item \textbf{Security}: JWT với Refresh Token pattern giúp cân bằng giữa security và UX.
+    \item \textbf{MongoDB}: Document database phù hợp với data có nested structure (subtitles, sections).
+    \item \textbf{Next.js}: App Router mạnh mẽ nhưng cần hiểu rõ Server/Client Components.
+\end{enumerate}
+
+% ============================================================================
+% TÀI LIỆU THAM KHẢO
+% ============================================================================
+
+\chapter*{Tài Liệu Tham Khảo}
+\addcontentsline{toc}{chapter}{Tài Liệu Tham Khảo}
+
+\begin{enumerate}
+    \item Spring Boot Documentation. \textit{https://docs.spring.io/spring-boot/docs/current/reference/html/}
+
+    \item Next.js Documentation. \textit{https://nextjs.org/docs}
+
+    \item MongoDB Documentation. \textit{https://www.mongodb.com/docs/}
+
+    \item Kotlin Language Documentation. \textit{https://kotlinlang.org/docs/home.html}
+
+    \item JWT.io - JSON Web Tokens. \textit{https://jwt.io/introduction}
+
+    \item Japan Foundation. \textit{Survey Report on Japanese-Language Education Abroad 2021}
+
+    \item React Documentation. \textit{https://react.dev/}
+
+    \item Tailwind CSS Documentation. \textit{https://tailwindcss.com/docs}
+\end{enumerate}
+
+% ============================================================================
+% PHỤ LỤC
+% ============================================================================
+
+\appendix
+
+\chapter{Danh sách API Endpoints}
+
+\section{Authentication Endpoints}
+
+\begin{lstlisting}[style=jsonstyle, caption={Register Request/Response}]
+// POST /api/auth/register
+// Request
+{
+  "email": "user@example.com",
+  "username": "johndoe",
+  "password": "securePassword123"
+}
+
+// Response (201 Created)
+{
+  "id": "65f1a2b3c4d5e6f7a8b9c0d1",
+  "email": "user@example.com",
+  "username": "johndoe",
+  "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
+}
+\end{lstlisting}
+
+\begin{lstlisting}[style=jsonstyle, caption={Login Request/Response}]
+// POST /api/auth/login
+// Request
+{
+  "email": "user@example.com",
+  "password": "securePassword123"
+}
+
+// Response (200 OK)
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
+  "user": {
+    "id": "65f1a2b3c4d5e6f7a8b9c0d1",
+    "email": "user@example.com",
+    "username": "johndoe",
+    "role": "USER"
+  }
+}
+\end{lstlisting}
+
+\section{Video Endpoints}
+
+\begin{lstlisting}[style=jsonstyle, caption={Get Videos Response}]
+// GET /api/videos?category=ANIME&level=N4&page=0&size=10
+// Response (200 OK)
+{
+  "content": [
+    {
+      "id": "65f1a2b3c4d5e6f7a8b9c0d2",
+      "youtubeId": "dQw4w9WgXcQ",
+      "title": "Japanese Anime Clip",
+      "category": "ANIME",
+      "level": "N4",
+      "thumbnailUrl": "https://...",
+      "duration": 180,
+      "viewCount": 1500
+    }
+  ],
+  "totalElements": 25,
+  "totalPages": 3,
+  "number": 0,
+  "size": 10
+}
+\end{lstlisting}
+
+\section{Forum Endpoints}
+
+\begin{lstlisting}[style=jsonstyle, caption={Create Post Request/Response}]
+// POST /api/forum/posts
+// Headers: Authorization: Bearer <accessToken>
+// Request
+{
+  "title": "Tips for JLPT N3",
+  "content": "Here are my tips for passing N3...",
+  "topic": "JLPT_TIPS",
+  "tags": ["jlpt", "n3", "tips"]
+}
+
+// Response (201 Created)
+{
+  "id": "65f1a2b3c4d5e6f7a8b9c0d3",
+  "title": "Tips for JLPT N3",
+  "content": "Here are my tips for passing N3...",
+  "topic": "JLPT_TIPS",
+  "authorId": "65f1a2b3c4d5e6f7a8b9c0d1",
+  "authorUsername": "johndoe",
+  "likeCount": 0,
+  "commentCount": 0,
+  "tags": ["jlpt", "n3", "tips"],
+  "createdAt": "2026-01-14T10:30:00Z"
+}
+\end{lstlisting}
+
+\chapter{Cấu trúc Database}
+
+\section{MongoDB Collections Schema}
+
+\begin{lstlisting}[style=jsonstyle, caption={Users Collection Schema}]
+// Collection: users
+{
+  "_id": ObjectId,
+  "email": String (unique, indexed),
+  "username": String (unique, indexed),
+  "passwordHash": String,
+  "displayName": String?,
+  "avatarUrl": String?,
+  "bio": String?,
+  "role": "USER" | "PREMIUM" | "ADMIN",
+  "preferences": {
+    "dailyGoal": Number,
+    "preferredLevel": "N5" | "N4" | "N3" | "N2" | "N1",
+    "notificationsEnabled": Boolean,
+    "theme": String
+  },
+  "progress": {
+    "totalStudyTime": Number,
+    "currentStreak": Number,
+    "longestStreak": Number,
+    "lastStudyDate": Date?,
+    "videosWatched": Number,
+    "shadowingAttempts": Number,
+    "dictationAttempts": Number,
+    "vocabularyLearned": Number
+  },
+  "isActive": Boolean,
+  "createdAt": Date,
+  "updatedAt": Date
+}
+\end{lstlisting}
+
+\begin{lstlisting}[style=jsonstyle, caption={Videos Collection Schema}]
+// Collection: videos
+{
+  "_id": ObjectId,
+  "youtubeId": String (unique, indexed),
+  "title": String (text indexed),
+  "description": String?,
+  "thumbnailUrl": String?,
+  "channelTitle": String?,
+  "duration": Number?,
+  "category": "ANIME" | "DRAMA" | "NEWS" | "VLOG" |
+              "MUSIC" | "EDUCATIONAL" | "GENERAL",
+  "level": "N5" | "N4" | "N3" | "N2" | "N1",
+  "subtitles": [
+    {
+      "index": Number,
+      "startTime": Number,
+      "endTime": Number,
+      "japanese": String,
+      "reading": String?,
+      "vietnamese": String?
+    }
+  ],
+  "viewCount": Number,
+  "likeCount": Number,
+  "tags": [String],
+  "isPublished": Boolean,
+  "createdAt": Date,
+  "updatedAt": Date
+}
+\end{lstlisting}
+
+\begin{lstlisting}[style=jsonstyle, caption={Vocabulary Decks Collection Schema}]
+// Collection: vocabulary_decks
+{
+  "_id": ObjectId,
+  "name": String (text indexed),
+  "description": String?,
+  "ownerId": String (indexed),
+  "ownerUsername": String,
+  "topic": "JLPT_N5" | "JLPT_N4" | "JLPT_N3" | "JLPT_N2" |
+           "JLPT_N1" | "DAILY_CONVERSATION" | "BUSINESS" |
+           "TRAVEL" | "ANIME_MANGA" | "CUSTOM",
+  "level": "N5" | "N4" | "N3" | "N2" | "N1"?,
+  "sections": [
+    {
+      "id": String,
+      "name": String,
+      "description": String?,
+      "items": [
+        {
+          "id": String,
+          "word": String,
+          "reading": String?,
+          "meaning": String,
+          "example": String?,
+          "exampleMeaning": String?,
+          "notes": String?,
+          "orderIndex": Number
+        }
+      ],
+      "orderIndex": Number
+    }
+  ],
+  "totalItems": Number,
+  "isPublic": Boolean (indexed),
+  "isOfficial": Boolean,
+  "cloneCount": Number,
+  "likeCount": Number,
+  "tags": [String],
+  "createdAt": Date,
+  "updatedAt": Date
+}
+\end{lstlisting}
+
+\end{document}

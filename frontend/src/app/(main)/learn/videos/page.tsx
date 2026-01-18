@@ -97,7 +97,7 @@ export default function VideosPage() {
   const handleModeSelect = (mode: "shadowing" | "dictation") => {
     if (selectedVideo) {
       if (mode === "shadowing") {
-        router.push(`/learn/videos/${selectedVideo.id}`);
+        router.push(`/learn/videos/${selectedVideo.id}/shadowing`);
       } else {
         router.push(`/learn/videos/${selectedVideo.id}/dictation`);
       }
