@@ -77,7 +77,7 @@ setup_env() {
         exit 1
     fi
 
-    if [ -z "$JWT_SECRET"]; then
+    if [ -z "$JWT_SECRET" ]; then
         log_error "Please set a secure JWT_SECRET in .env"
         exit 1
     fi
