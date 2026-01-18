@@ -14,6 +14,7 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@/components/ui";
+import { videoApi } from "@/lib/api-client";
 
 const categories = [
   { value: "ALL", label: "All" },
@@ -44,7 +45,7 @@ interface VideoData {
   duration: number;
   category: string;
   level: string;
-  segmentCount: number;
+  segmentCount?: number;
   isOfficial: boolean;
   stats: VideoStats;
 }
@@ -114,29 +115,26 @@ export default function VideosPage() {
       setLoading(true);
       setError(null);
 
-      const params = new URLSearchParams({
-        page: page.toString(),
-        size: "12",
-      });
+      const params: {
+        page?: number;
+        size?: number;
+        level?: string;
+        category?: string;
+      } = {
+        page,
+        size: 12,
+      };
 
       if (selectedLevel !== "All") {
-        params.append("level", selectedLevel);
+        params.level = selectedLevel;
       }
 
       if (selectedCategory !== "ALL") {
-        params.append("category", selectedCategory);
+        params.category = selectedCategory;
       }
 
-      const response = await fetch(
-        `http://localhost:8080/api/videos?${params.toString()}`
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch videos");
-      }
-
-      const data: ApiResponse = await response.json();
-      setVideos(data.content);
+      const data = await videoApi.getAll(params);
+      setVideos(data.content as VideoData[]);
       setTotalPages(data.totalPages);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -400,7 +398,7 @@ function VideoCard({ video, onClick }: { video: VideoData; onClick: () => void }
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
-                {video.segmentCount} segments
+                {video.segmentCount ?? 0} segments
               </span>
             </div>
             <div className="flex items-center gap-3">
