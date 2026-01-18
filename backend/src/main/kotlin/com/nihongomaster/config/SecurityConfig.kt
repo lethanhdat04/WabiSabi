@@ -88,8 +88,10 @@ class SecurityConfig(
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration().apply {
             allowedOrigins = listOf(
-                "http://localhost:3000",  // Next.js dev server
-                "http://localhost:8080"   // Same origin
+                "http://localhost:3000",      // Next.js dev server
+                "http://localhost:8080",      // Same origin (dev)
+                "https://datto.io.vn",        // Production
+                "https://www.datto.io.vn"     // Production with www
             )
             allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
             allowedHeaders = listOf("*")
